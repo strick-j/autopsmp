@@ -6,10 +6,10 @@ function main(){
 	info_prompt
 	pass_prompt
 	cred_create
-#	psmpparms_mod
-#	vaultini_mod
-#	install_psmp
-#	system_cleanup
+	psmpparms_mod
+	vaultini_mod
+	install_psmp
+	system_cleanup
 }
 
 # Generic output functions
