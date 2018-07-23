@@ -6,10 +6,10 @@ function main(){
 	info_prompt
 	pass_prompt
 	cred_create
-	psmpparms_mod
-	vaultini_mod
-	install_psmp
-	system_cleanup
+#	psmpparms_mod
+#	vaultini_mod
+#	install_psmp
+#	system_cleanup
 }
 
 # Generic output functions
@@ -98,7 +98,13 @@ cred_create(){
 	if [[ -f $foldervar/CreateCredFile ]];then
 		# Modify permissions and create credential file
 		chmod 755 $foldervar/CreateCredFile
-		$foldervar/CreateCredFile $foldervar/user.cred Password -username $uservar -password $passvar1
+		$foldervar/CreateCredFile $foldervar/user.cred Password -username $uservar -password $passvar1 >> autopsmp.log 2>&1
+		vercredvar=$(tail -1 autopsmp.log)
+		if [[ "$vercredvar" == "Command ended successfully" ]]; then
+			print_success "Credential file created successfully"
+		else
+			print_error "Credential file not created sueccessfully. Exiting now..."
+		fi
 	else
 		print_error "CreateCredFile file not found, verify needed files have been copied over. Exiting now..."
 		exit 1
@@ -141,7 +147,7 @@ install_psmp(){
 	# Installing PSMP using rpm file
 	print_head "Step 3: Installing PSMP"
 	print_info "Verifying rpm GPG Key is present"
-	if [[ -f $foldervar/RPM-GPG-KEY-CyberArk  ]]; then
+	if [[ -f $foldervar/RPM-GPG-KEY-CyberArk ]]; then
 		# Import GPG Key
 		print_info "GPG Key present - Importing..."
 		rpm --import $foldervar/RPM-GPG-KEY-CyberArk
@@ -150,9 +156,9 @@ install_psmp(){
 		print_error "RPM GPG Key not found, verify needed files have been copied over. Exiting now..."
 	fi
 	print_info "Verifying PSMP rpm installer is present"
-	if [[ -f $foldervar/CARKpsmp* ]]; then
+	psmprpm=`ls $foldervar | grep CARKpsmp*`
+	if [[ -f $foldervar/$psmprpm ]]; then
 		# Install CyberArk RPM
-		psmprpm=`ls $foldervar | grep CARKpsmp*`
 		print_info "PSMP rpm installer present - installing $psmprpm"
 		rpm -ih $foldervar/$psmprpm
 	else
