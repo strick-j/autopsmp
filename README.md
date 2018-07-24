@@ -11,8 +11,10 @@ Automated CyberArk Privileged Session Manager SSH Proxy Installer.
 # Requirements
 1. Prior to running this script you must have access to the needed source files from CyberArk. These files will typically be in a zip file named something similar to "Privileged Session Manager SSH Proxy-Rls-v10.x". To obtain these files, work with your CyberArk Account Rep or Sales Engineer. Additionally, these files are obtainable through the CyberArk Support Vault.
 2. You must unzip and copy the entire directory to the server which the installation script is being executed on. Recommended location is /opt/. 
-3. Prior to installation have the following information on hand:
-	a. Folder path that the above required files were copied to. (e.g. /opt/PSMP/)
-	b. Vault Username - Note user requires permissions to perform several activities in the vault, more details can be found in the PAS Installation Guide.
-	c. Vault User Password
-	d. Vault IP Address
+
+# User Prompts
+Prior to installation have the following information on hand:
+1. Folder path that the above required files were copied to. (e.g. /opt/PSMP/)
+2. Vault Username - Note user requires permissions to perform several activities in the vault, more details can be found in the PAS Installation Guide.
+3. Vault User Password
+4. Vault IP Address
