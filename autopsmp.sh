@@ -2,10 +2,10 @@
 
 function main(){
 #	system_prep
-#	dir_prompt
+	dir_prompt
 	info_prompt
 	pass_prompt
-#	cred_create
+	cred_create
 #	psmpparms_mod
 #	vaultini_modi
 #	install_psmp
@@ -84,8 +84,15 @@ cred_create(){
 	# Create credential file with username and password provided above
 	echo
 	print_info "Creating Credential File for authorization to Vault"
-	chmod 755 $foldervar/CreateCredFile
-	$foldervar/CreateCredFile user.cred /Username admin /Password Cyberark1 /ExternalAuth No
+	# Verify CreateCredFile is present, exit if not
+	if [ -f $foldervar/CreateCredFile ];then
+		# Modify permissions and create credential file
+		chmod 755 $foldervar/CreateCredFile
+		$foldervar/CreateCredFile $foldervar/user.cred Password -username $uservar -password $passvar
+	else
+		print_error "CreateCredFile file not found, verify needed files have been copied over. Exiting now..."
+		exit 1
+	fi
 }
 vaultini_mod(){
 	# Modifing vault.ini file with information provided above
