@@ -1,14 +1,14 @@
 #!/bin/bash
 
 function main(){
-#	system_prep
+	system_prep
 	dir_prompt
 	info_prompt
 	pass_prompt
 	cred_create
-#	psmpparms_mod
-#	vaultini_modi
-#	install_psmp
+	psmpparms_mod
+	vaultini_modi
+	install_psmp
 }
 
 # Generic output functions
@@ -130,15 +130,17 @@ install_psmp(){
 	echo
 	print_info "Verifying rpm GPG Key is present and importing..."
 	if [ -f $foldervar/RPM-GPG-KEY-CyberArk  ]; then
+		# Import GPG Key
 		rpm --import $foldervar/RPM-GPG-KEY-CyberArk
 	else
 		print_error "RPM GPG Key not found, verify needed files have been copied over. Exiting now..."
 	fi
 	print_info "Verifying PSMP rpm installer is present and installing..."
 	if [ -f $foldervar/CARKpsmp-10.4.0-15.x86_64.rpm ]; then
+		# Install CyberArk RPM
 		rpm -ih CARKpsmp-10.4.0-15.x86_64.rpm
 	else
-		print_error "necessry rpm installer not found, verify needed files have been copied over. Exiting now..."
+		print_error "Necessry rpm installer not found, verify needed files have been copied over. Exiting now..."
 		exit 1
 	fi
 }
