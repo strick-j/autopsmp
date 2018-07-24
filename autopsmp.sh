@@ -52,7 +52,7 @@ dir_prompt(){
 	# Prompt for directory info of installation folder, verify directory exists
 	print_info "Requesting installation directory information"
 	read -p 'Please enter the full path for the installation folder directory [e.g. /opt/psmp]: ' foldervar
-	if [ -d $foldervar ]; then
+	if [[ -d $foldervar ]]; then
 		# Directory present, subfolders have not been verified
 		print_success "Directory information confirmed as: $foldervar"
 	else
@@ -82,7 +82,7 @@ pass_prompt(){
         read -sp 'Please re-enter Vault Password: ' passvar2
         echo
         # Test if passwords match
-        if [ "$passvar1" == "$passvar2" ]; then
+        if [[ "$passvar1" == "$passvar2" ]]; then
                 print_success "Passwords match as expected, moving on to next step"
                 unset passvar2
         else
@@ -95,7 +95,7 @@ cred_create(){
 	print_head "Step 2: Modifying Files"
 	print_info "Creating Credential File for authorization to Vault"
 	# Verify CreateCredFile is present, exit if not
-	if [ -f $foldervar/CreateCredFile ];then
+	if [[ -f $foldervar/CreateCredFile ]];then
 		# Modify permissions and create credential file
 		chmod 755 $foldervar/CreateCredFile
 		$foldervar/CreateCredFile $foldervar/user.cred Password -username $uservar -password $passvar1
@@ -109,11 +109,12 @@ vaultini_mod(){
 	echo
 	print_info "Updating vault.ini file with Vault IP: $ipvar"
 	# Verify vault.ini file is present, exit if not
-	if [ -f $foldervar/vault.ini ]; then
+	if [[ -f $foldervar/vault.ini ]]; then
 		# Modify IP address in vault.ini file
         	cp $foldervar/vault.ini $foldervar/vault.ini.bak
         	sed -i "s+ADDRESS=.*+ADDRESS=$ipvar+g" $foldervar/vault.ini
  	else
+		# Error - File not found
 		print_error "vault.ini file not found, verify needed files have been copied over. Exiting now..."
 		exit 1
 	fi
@@ -124,7 +125,7 @@ psmpparms_mod(){
 	echo
 	print_info "Updating psmpparms file with user provided information"
 	# Verify psmpparms.sample is present, exit if not
-	if [ -f $foldervar/psmpparms.sample ]; then
+	if [[ -f $foldervar/psmpparms.sample ]]; then
 		# Create psmpparms file and modify variables
         	cp $foldervar/psmpparms.sample /var/tmp/psmpparms
         	sed -i "s+InstallationFolder.*+InstallationFolder=$foldervar+g" /var/tmp/psmpparms
@@ -140,7 +141,7 @@ install_psmp(){
 	# Installing PSMP using rpm file
 	print_head "Step 3: Installing PSMP"
 	print_info "Verifying rpm GPG Key is present"
-	if [ -f $foldervar/RPM-GPG-KEY-CyberArk  ]; then
+	if [[ -f $foldervar/RPM-GPG-KEY-CyberArk  ]]; then
 		# Import GPG Key
 		print_info "GPG Key present - Importing..."
 		rpm --import $foldervar/RPM-GPG-KEY-CyberArk
@@ -149,7 +150,7 @@ install_psmp(){
 		print_error "RPM GPG Key not found, verify needed files have been copied over. Exiting now..."
 	fi
 	print_info "Verifying PSMP rpm installer is present"
-	if [ -f $foldervar/CARKpsmp* ]; then
+	if [[ -f $foldervar/CARKpsmp* ]]; then
 		# Install CyberArk RPM
 		psmprpm=`ls $foldervar | grep CARKpsmp*`
 		print_info "PSMP rpm installer present - installing $psmprpm"
@@ -167,7 +168,7 @@ system_cleanup(){
 	rm -f $foldervar/user.cred
 	rm -f $foldervar/vault.ini
 	rm -f $foldervar/CreateCredFile
-	if [ -f $foldervar/user.cred ]||[ -f $foldervar/vault.ini ]||[ -f $foldervar/CreateCredFile ]; then
+	if [[ -f $foldervar/user.cred ]]||[[ -f $foldervar/vault.ini ]]||[[ -f $foldervar/CreateCredFile ]]; then
 		print_error "Files could not be deleted, please manually remove..."
 	else
 		print_success "System cleanup completed"
