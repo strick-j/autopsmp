@@ -7,11 +7,21 @@ function main(){
 	pass_prompt
 	cred_create
 	psmpparms_mod
-	vaultini_modi
+	vaultini_mod
 	install_psmp
+	system_cleanup
 }
 
 # Generic output functions
+print_head(){
+	white=`tput setaf 7`
+	reset=`tput sgr0`
+	echo ""
+	echo "======================================================"
+	echo "${white}$1${reset}"
+	echo "======================================================"
+	echo ""
+}
 print_info(){
 	white=`tput setaf 7`
 	reset=`tput sgr0`
@@ -38,6 +48,7 @@ system_prep(){
 	echo "Log file generated on $(date)" >> autopsmp.log
 }
 dir_prompt(){
+	print_head "Step 1: Collecting Info"
 	# Prompt for directory info of installation folder, verify directory exists
 	print_info "Requesting installation directory information"
 	read -p 'Please enter the full path for the installation folder directory [e.g. /opt/psmp]: ' foldervar
@@ -78,17 +89,16 @@ pass_prompt(){
                 print_error "Passwords do not match. Please try again."
                 pass_prompt 
         fi
-        echo
 }
 cred_create(){
 	# Create credential file with username and password provided above
-	echo
+	print_head "Step 2: Modifying Files"
 	print_info "Creating Credential File for authorization to Vault"
 	# Verify CreateCredFile is present, exit if not
 	if [ -f $foldervar/CreateCredFile ];then
 		# Modify permissions and create credential file
 		chmod 755 $foldervar/CreateCredFile
-		$foldervar/CreateCredFile $foldervar/user.cred Password -username $uservar -password $passvar
+		$foldervar/CreateCredFile $foldervar/user.cred Password -username $uservar -password $passvar1
 	else
 		print_error "CreateCredFile file not found, verify needed files have been copied over. Exiting now..."
 		exit 1
@@ -120,6 +130,7 @@ psmpparms_mod(){
         	sed -i "s+InstallationFolder.*+InstallationFolder=$foldervar+g" /var/tmp/psmpparms
 	        sed -i "s+AcceptCyberArkEULA=No+AcceptCyberArkEULA=Yes+g" /var/tmp/psmpparms
 	else
+		# Error - File not found
 		print_error "psmpparms.sample file not found, verify needed files have been copied over. Exiting now..."
 		exit 1
 	fi
@@ -127,21 +138,40 @@ psmpparms_mod(){
 }
 install_psmp(){
 	# Installing PSMP using rpm file
-	echo
-	print_info "Verifying rpm GPG Key is present and importing..."
+	print_head "Step 3: Installing PSMP"
+	print_info "Verifying rpm GPG Key is present"
 	if [ -f $foldervar/RPM-GPG-KEY-CyberArk  ]; then
 		# Import GPG Key
+		print_info "GPG Key present - Importing..."
 		rpm --import $foldervar/RPM-GPG-KEY-CyberArk
 	else
+		# Error - File not found
 		print_error "RPM GPG Key not found, verify needed files have been copied over. Exiting now..."
 	fi
-	print_info "Verifying PSMP rpm installer is present and installing..."
-	if [ -f $foldervar/CARKpsmp-10.4.0-15.x86_64.rpm ]; then
+	print_info "Verifying PSMP rpm installer is present"
+	if [ -f $foldervar/CARKpsmp* ]; then
 		# Install CyberArk RPM
-		rpm -ih CARKpsmp-10.4.0-15.x86_64.rpm
+		psmprpm=`ls $foldervar | grep CARKpsmp*`
+		print_info "PSMP rpm installer present - installing $psmprpm"
+		rpm -ih $foldervar/$psmprpm
 	else
+		# Error - File not found
 		print_error "Necessry rpm installer not found, verify needed files have been copied over. Exiting now..."
 		exit 1
 	fi
 }
+system_cleanup(){
+	# Cleaning up system files used during install
+	print_head "Step 4: System Cleanup"
+	print_info "Removing user.cred, vault.ini, and CreateCredFile Utility"
+	rm -f $foldervar/user.cred
+	rm -f $foldervar/vault.ini
+	rm -f $foldervar/CreateCredFile
+	if [ -f $foldervar/user.cred ]||[ -f $foldervar/vault.ini ]||[ -f $foldervar/CreateCredFile ]; then
+		print_error "Files could not be deleted, please manually remove..."
+	else
+		print_success "System cleanup completed"
+	fi
+}
+
 main
