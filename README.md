@@ -1,6 +1,10 @@
 # autopsmp
 Automated CyberArk Privileged Session Manager SSH Proxy Installer.
 
+<p align="center">
+    <img src="https://cdn.rawgit.com/strick-j/autopsmp/25b02eb8/examples/psmpinstall.svg">
+</p>
+
 # Installation
 1. Create a non-root Administrative user prior to running this script. Part of the install process will prevent remote logins from the root user.
 2. Login as the non-root user and change directories to the home directory for that user.
