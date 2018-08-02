@@ -55,15 +55,15 @@ system_prep(){
   else
     local done=0
     while : ; do
-      print_error "Maintenance user does not, would you like to create \"$username\" user?"
+      print_error "Maintenance user does not exist, would you like to create \"$username\" user?"
       select yn in "Yes" "No"; do
         case $yn in
           Yes ) createuser "$username"; done=1; break;;
-          No ) print_error "If you do not create a maintenance user you may not be able to log in after script completes via ssh. Create \"$username\" user?"
+          No ) echo ""; print_error "If you do not create a maintenance user you may not be able to log in after script completes via ssh. Create \"$username\" user?"
             select yn in "Yes" "No"; do
               case $yn in
                 Yes ) createuser "$username"; done=1; break;;
-                No )  print_error "Continuing without creating maintenance user"; done=1; break;;
+                No ) echo ""; print_error "Continuing without creating maintenance user"; done=1; break;;
               esac
             done
             if [[ "$done" -ne 0 ]]; then
@@ -133,7 +133,8 @@ pass_prompt(){
   # Test if passwords match
   if [[ "$passvar1" == "$passvar2" ]]; then
     print_success "Passwords match as expected, moving on to next step"
-    tomcatpass="$passvar1"
+    vaultpass="$passvar1"
+    # Unset password variables
     unset passvar2
     unset passvar1
   else
@@ -149,9 +150,9 @@ cred_create(){
   if [[ -f $foldervar/CreateCredFile ]];then
     # Modify permissions and create credential file
     chmod 755 $foldervar/CreateCredFile
-    $foldervar/CreateCredFile $foldervar/user.cred Password -username $uservar -password $tomcatpass >> autopsmp.log 2>&1
+    $foldervar/CreateCredFile $foldervar/user.cred Password -username $uservar -password $vaultpass >> autopsmp.log 2>&1
     # Unset password variable
-    unset tomcatpass
+    unset vaultpass
     vercredvar=$(tail -1 autopsmp.log)
     if [[ "$vercredvar" == "Command ended successfully" ]]; then
       print_success "Credential file created successfully"
