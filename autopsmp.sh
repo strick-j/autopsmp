@@ -1,54 +1,52 @@
 #!/bin/bash
 
 function main(){
-	system_prep
-	dir_prompt
-#	info_prompt
-#	pass_prompt
-#	cred_create
-#	psmpparms_mod
-#	vaultini_mod
-#	install_psmp
-#	system_cleanup
+  system_prep
+  dir_prompt
+  info_prompt
+  pass_prompt
+  cred_create
+  psmpparms_mod
+  vaultini_mod
+  install_psmp
+  system_cleanup
 }
+
+# Global Color Variable
+  white=`tput setaf 7`
+  reset=`tput sgr0`
 
 # Generic output functions
 print_head(){
-	white=`tput setaf 7`
-	reset=`tput sgr0`
-	echo ""
-	echo "======================================================"
-	echo "${white}$1${reset}"
-	echo "======================================================"
-	echo ""
+  echo ""
+  echo "======================================================================="
+  echo "${white}$1${reset}"
+  echo "======================================================================="
+  echo ""
 }
 print_info(){
-	white=`tput setaf 7`
-	reset=`tput sgr0`
-	echo "${white}INFO: $1${reset}"
-	echo "INFO: $1" >> autopsmp.log
+  echo "${white}INFO: $1${reset}"
+  echo "INFO: $1" >> autopsmp.log
 }
 print_success(){
-	green=`tput setaf 2`
-	reset=`tput sgr0`
-	echo "${green}SUCCESS: $1${reset}"
-	echo "SUCCESS: $1" >> autopsmp.log
+  green=`tput setaf 2`
+  echo "${green}SUCCESS: $1${reset}"
+  echo "SUCCESS: $1" >> autopsmp.log
 }
 print_error(){
-	red=`tput setaf 1`
-	reset=`tput sgr0`
-	echo "${red}ERROR: $1${reset}"
-	echo "ERROR: $1" >> autopsmp.log
+  red=`tput setaf 1`
+  echo "${red}ERROR: $1${reset}"
+  echo "ERROR: $1" >> autopsmp.log
 }
 
 # Main installation functions
 system_prep(){
-	print_head "Step 1: System preperation - create log, check for maintenance user"
-	
+  print_head "Step 1: System preperation - create log, check for maintenance user"
+  
   # Generate initial log file  
   touch autopsmp.log
-	echo "Log file generated on $(date)" >> autopsmp.log
-  
+  echo "Log file generated on $(date)" >> autopsmp.log
+
   # Verifying maintenance user exists
   local username="proxymng"
   print_info "Checking to see if maintenance user \"$username\" exists"
