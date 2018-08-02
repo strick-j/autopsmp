@@ -99,7 +99,7 @@ createuser(){
   fi
 }
 dir_prompt(){
-	print_head "Step 1: Collecting Info"
+	print_head "Step 2: Collecting Info"
 	# Prompt for directory info of installation folder, verify directory exists
 	print_info "Requesting installation directory information"
 	read -p 'Please enter the full path for the installation folder directory [e.g. /opt/psmp]: ' foldervar
@@ -145,7 +145,7 @@ pass_prompt(){
 }
 cred_create(){
 	# Create credential file with username and password provided above
-	print_head "Step 2: Modifying Files"
+	print_head "Step 3: Modifying Files"
 	print_info "Creating Credential File for authorization to Vault"
 	# Verify CreateCredFile is present, exit if not
 	if [[ -f $foldervar/CreateCredFile ]];then
@@ -201,7 +201,7 @@ psmpparms_mod(){
 }
 install_psmp(){
 	# Installing PSMP using rpm file
-  print_head "Step 3: Installing PSMP"
+  print_head "Step 4: Installing PSMP"
   print_info "Verifying rpm GPG Key is present"
   if [[ -f $foldervar/RPM-GPG-KEY-CyberArk ]]; then
     # Import GPG Key
@@ -226,7 +226,7 @@ install_psmp(){
 }
 system_cleanup(){
 	# Cleaning up system files used during install
-	print_head "Step 4: System Cleanup"
+	print_head "Step 5: System Cleanup"
 	print_info "Removing user.cred, vault.ini, and CreateCredFile Utility"
 	rm -f $foldervar/user.cred
 	rm -f $foldervar/vault.ini
