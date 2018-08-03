@@ -51,7 +51,7 @@ system_prep(){
   local username="proxymng"
   print_info "Checking to see if maintenance user \"$username\" exists"
   if id $username >/dev/null 2>&1; then
-    print_info "User exists, moving on to next step. Ensure password is set  prior to reboot"
+    print_info "User exists, moving on to next step. Ensure password is set prior to reboot"
   else
     local done=0
     while : ; do
@@ -80,6 +80,18 @@ system_prep(){
     done
   fi
   echo ""
+
+  # Prompt for EULA Acceptance
+  print_info "Have you read and accepted the CyberArk EULA?"
+  select yn in "Yes" "No"; do
+    case $yn in
+      Yes ) print_success "EULA Accepted, proceeding..."; break;;
+      No ) print_error "EULA not accepted, exiting now..."; exit 1;;
+    esac
+  done
+  echo ""
+
+  # Print Success
   print_info "System preperation completed"
 }
 createuser(){
@@ -90,6 +102,7 @@ createuser(){
   print_info "Verifying user was created"
   if id "$1" >/dev/null 2>&1; then
     print_success "User created and added to wheel group"
+    echo ""
     print_info "Please set password for \"$1\""
     passwd "$1"
   else
