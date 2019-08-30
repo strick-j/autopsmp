@@ -1,0 +1,18 @@
+kind: pipeline
+name: autopsmp validation
+steps:
+- name: rotate_secret
+  image: cyberark/conjur-cli:5 # Update
+  environment:
+    CONJUR_ADMIN_KEY:
+      from_secret: CONJUR_ADMIN_KEY
+    PLUGIN_BUILD_ARGS:
+      CONJUR_ADMIN_KEY=$CONJUR_ADMIN_KEY
+  commands:
+    - sleep 10
+    # Add Steps for Test Here
+  when: # Update
+    branch:
+      - master
+    event:
+      - push
