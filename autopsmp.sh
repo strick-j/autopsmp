@@ -161,6 +161,7 @@ pass_prompt(){
     # Unset password variables
     unset passvar2
     unset passvar1
+    echo ""
   else
     print_error "Passwords do not match. Please try again."
     pass_prompt
@@ -256,17 +257,22 @@ install_prerequisites(){
   # Installing PSMP Pre-Requisites using rpm files
   print_head "Step 4: Installing PSMP Pre-Requisites"
   print_info "Verifying Pre-Requisites are present"
-  prereqfolder=$foldervar
-  prereqfolder+="/Pre-Requisites"
-  libsshrpm=`ls $prereqfolder | grep libssh*`
-  if [[ -f $prereqfolder/$libsshrpm ]]; then
-    # Install libssh
-    print_info "libssh present - Installing..."
-    rpm -ih $prereqfolder/$libsshrpm
+  #TODO - Check if LIBSSH is already installed, if so uninstall it
+  if rpm -qa libssh 2>&1 > /dev/null; then
+    print_info "libssh is already installed, skipping..."
   else
-    # Error - File not found
-    print_error "libssh rpm not found, verify needed Pre-Requisites have been copied over. Exiting now..."
-    exit 1
+    prereqfolder=$foldervar
+    prereqfolder+="/Pre-Requisites"
+    libsshrpm=`ls $prereqfolder | grep libssh*`
+    if [[ -f $prereqfolder/$libsshrpm ]]; then
+      # Install libssh
+      print_info "libssh present - Installing..."
+      rpm -ih $prereqfolder/$libsshrpm
+    else
+      # Error - File not found
+      print_error "libssh rpm not found, verify needed Pre-Requisites have been copied over. Exiting now..."
+      exit 1
+    fi
   fi
   
   # Check if installing in integrated mode, if so install infra package
