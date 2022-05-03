@@ -266,7 +266,8 @@ install_prerequisites(){
     libsshrpm=`ls $prereqfolder | grep libssh*`
     if [[ -f $prereqfolder/$libsshrpm ]]; then
       # Install libssh
-      print_info "libssh present - Installing..."
+      print_info "libssh present - Installing $librsshrpm"
+      echo ""
       rpm -ih $prereqfolder/$libsshrpm
     else
       # Error - File not found
@@ -274,16 +275,17 @@ install_prerequisites(){
       exit 1
     fi
   fi
-  
+
   # Check if installing in integrated mode, if so install infra package
-  if $cyberarksshd == "Integrated"; then
+  if [[ $cyberarksshd == "Integrated" ]]; then
     print_info "CyberArkSSHD set to integrated mode. CARKpsmp-infra will be installed."
     infrafolder=$foldervar
     infrafolder+="/IntegratedMode"
     infrarpm=`ls $infrafolder | grep CARKpsmp-infra*`
     if [[ -f $infrafolder/$infrarpm ]]; then
       # Install CARKpsmp-infra
-      print_info "CARKpsmp-infra present - Installing..."
+      print_info "CARKpsmp-infra present - Installing $infrarpm"
+      echo ""
       rpm -ih $infrafolder/$infrarpm
     else
       # Error - File not found
@@ -311,6 +313,7 @@ install_psmp(){
   if [[ -f $foldervar/$psmprpm ]]; then
     # Install CyberArk RPM
     print_info "PSMP rpm installer present - installing $psmprpm"
+    echo ""
     rpm -ih $foldervar/$psmprpm
   else
     # Error - File not found
