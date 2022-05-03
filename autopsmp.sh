@@ -5,12 +5,15 @@ function main(){
   dir_prompt
   info_prompt
   pass_prompt
+  mode_prompt
   cred_create
   psmpparms_mod
   vaultini_mod
+  install_prerequisites
   install_psmp
   system_cleanup
 }
+
 
 # Global Color Variable
   white=`tput setaf 7`
@@ -80,6 +83,9 @@ system_prep(){
     done
   fi
   echo ""
+
+  # Check SELinux
+
 
   # Prompt for EULA Acceptance
   print_info "Have you read and accepted the CyberArk EULA?"
