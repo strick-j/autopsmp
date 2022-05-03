@@ -94,6 +94,7 @@ system_prep(){
   # Print Success
   print_info "System preperation completed"
 }
+
 createuser(){
   echo ""
   print_info "Creating \"$1\" user and setting permissions"
@@ -109,6 +110,7 @@ createuser(){
     print_error "User could not be created, manually add user prior to reboot"
   fi
 }
+
 dir_prompt(){
   print_head "Step 2: Collecting Info"
   # Prompt for directory info of installation folder, verify directory exists
@@ -128,13 +130,16 @@ dir_prompt(){
     done
   fi	
 }
+
 info_prompt(){
   # Prompt for Vault IP and Username info
   echo
   print_info "Requesting Vault IP and Username for PSMP Installation"
+  print_info "Note: Vault user should be a predefined Administrator or have the appropriate permissions as described in the PSMP install instructions."
   read -p 'Please enter Vault IP Address: ' ipvar
   read -p 'Please enter Vault Username: ' uservar
 }
+
 pass_prompt(){
   # Prompt for Vault Password info
   echo 
@@ -155,6 +160,32 @@ pass_prompt(){
     pass_prompt
   fi
 }
+
+mode_prompt(){
+  # Prompt for CyberArkInstallSSHD mode
+  print_info "Desired InstallCyberArkSSHD setting (Integrated, Yes, No): "
+  select method in "Integrated" "Yes" "No"; do
+    case $method in
+      Integrated ) 
+        print_info "InstallCyberArkSSHD=Integrated. Proceeding..."
+        cyberarksshd="Integrated"
+        break;;
+      Yes ) 
+        print_info "InstallCyberArkSSHD=Yes. Proceeding..."
+        cyberarksshd="Yes"
+        break;;
+      No ) 
+        print_info "InstallCyberArkSSHD=No, some limitations apply. Proceeding..."
+        cyberarksshd="No"
+        break;;
+      *)
+        Print_error "Invalid option"
+        mode_prompt
+    esac
+  done
+  echo ""
+}
+
 cred_create(){
   # Create credential file with username and password provided above
   print_head "Step 3: Modifying Files"
@@ -163,7 +194,7 @@ cred_create(){
   if [[ -f $foldervar/CreateCredFile ]];then
     # Modify permissions and create credential file
     chmod 755 $foldervar/CreateCredFile
-    $foldervar/CreateCredFile $foldervar/user.cred Password -username $uservar -password $vaultpass >> autopsmp.log 2>&1
+    $foldervar/CreateCredFile $foldervar/user.cred Password -username $uservar -password $vaultpass -EntropyFile >> autopsmp.log 2>&1
     # Unset password variable
     unset vaultpass
     vercredvar=$(tail -1 autopsmp.log)
@@ -178,6 +209,7 @@ cred_create(){
     exit 1
   fi
 }
+
 vaultini_mod(){
   # Modifing vault.ini file with information provided above
   echo
@@ -194,6 +226,7 @@ vaultini_mod(){
   fi
   print_success "Completed vault.ini file modifications"
 }
+
 psmpparms_mod(){
   # Update psmpparms file with information provided above
   echo
@@ -204,6 +237,7 @@ psmpparms_mod(){
     cp $foldervar/psmpparms.sample /var/tmp/psmpparms
     sed -i "s+InstallationFolder.*+InstallationFolder=$foldervar+g" /var/tmp/psmpparms
     sed -i "s+AcceptCyberArkEULA=No+AcceptCyberArkEULA=Yes+g" /var/tmp/psmpparms
+    sed -i "s+InstallCyberArkSSHD=Integrated+InstallCyberArkSSHD=$cyberarksshd+g" /var/tmp/psmpparms
   else
     # Error - File not found
     print_error "psmpparms.sample file not found, verify needed files have been copied over. Exiting now..."
@@ -211,9 +245,45 @@ psmpparms_mod(){
   fi
   print_success "psmpparms file modified and copied to /var/tmp/"
 }
+
+install_prerequisites(){
+  # Installing PSMP Pre-Requisites using rpm files
+  print_head "Step 4: Installing PSMP Pre-Requisites"
+  print_info "Verifying Pre-Requisites are present"
+  prereqfolder=$foldervar
+  prereqfolder+="/Pre-Requisites"
+  libsshrpm=`ls $prereqfolder | grep libssh*`
+  if [[ -f $prereqfolder/$libsshrpm ]]; then
+    # Install libssh
+    print_info "libssh present - Installing..."
+    rpm -ih $prereqfolder/$libsshrpm
+  else
+    # Error - File not found
+    print_error "libssh rpm not found, verify needed Pre-Requisites have been copied over. Exiting now..."
+    exit 1
+  fi
+  
+  # Check if installing in integrated mode, if so install infra package
+  if $cyberarksshd == "Integrated"; then
+    print_info "CyberArkSSHD set to integrated mode. CARKpsmp-infra will be installed."
+    infrafolder=$foldervar
+    infrafolder+="/IntegratedMode"
+    infrarpm=`ls $infrafolder | grep CARKpsmp-infra*`
+    if [[ -f $infrafolder/$infrarpm ]]; then
+      # Install CARKpsmp-infra
+      print_info "CARKpsmp-infra present - Installing..."
+      rpm -ih $infrafolder/$infrarpm
+    else
+      # Error - File not found
+      print_error "CARKpsmp-infra rpm not found and is required for integrated mode, verify needed Pre-Requisites have been copied over. Exiting now..."
+      exit 1
+    fi
+  fi
+}
+
 install_psmp(){
   # Installing PSMP using rpm file
-  print_head "Step 4: Installing PSMP"
+  print_head "Step 5: Installing PSMP"
   print_info "Verifying rpm GPG Key is present"
   if [[ -f $foldervar/RPM-GPG-KEY-CyberArk ]]; then
     # Import GPG Key
@@ -236,9 +306,10 @@ install_psmp(){
     exit 1
   fi
 }
+
 system_cleanup(){
   # Cleaning up system files used during install
-  print_head "Step 5: System Cleanup"
+  print_head "Step 6: System Cleanup"
   print_info "Removing user.cred, vault.ini, and CreateCredFile Utility"
   rm -f $foldervar/user.cred
   rm -f $foldervar/vault.ini
