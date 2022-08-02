@@ -1,4 +1,4 @@
-#!/bin/bash
+ #!/bin/bash
 
 function main(){
   system_prep
@@ -17,6 +17,8 @@ function main(){
 
 # Global Color Variable
   white=`tput setaf 7`
+  green=`tput setaf 2`
+  red=`tput setaf 1`
   reset=`tput sgr0`
 
 # Generic output functions
@@ -29,15 +31,13 @@ print_head(){
 }
 print_info(){
   echo "${white}INFO: $1${reset}"
-  echo "INFO: $1" >> autopsmp.log
+  echo `date` "INFO: $1" >> autopsmp.log
 }
 print_success(){
-  green=`tput setaf 2`
   echo "${green}SUCCESS: $1${reset}"
   echo "SUCCESS: $1" >> autopsmp.log
 }
 print_error(){
-  red=`tput setaf 1`
   echo "${red}ERROR: $1${reset}"
   echo "ERROR: $1" >> autopsmp.log
 }
@@ -84,8 +84,19 @@ system_prep(){
   fi
   echo ""
 
-  # Check SELinux
-
+  # Check SELinux and recommend enabling if not enabled
+  local selinuxEnforcing=""
+  selinuxEnforcing=$(sestatus | grep enabled )
+  if [ -z "$selinuxEnforcing"] ; then
+    print_error "SELinux is not enabled. CyberArk recommends enabling SELinux prior to installation. Exit and enable SELinux?"
+    select yn in "Yes" "No"; do
+      case $yn in
+        Yes ) print_info "Exiting now..."; exit 1;;
+        No ) echo ""; print_error "Continuing without enabling SELinux."; break;;
+      esac
+    done
+    echo ""
+  fi
 
   # Prompt for EULA Acceptance
   print_info "Have you read and accepted the CyberArk EULA?"
