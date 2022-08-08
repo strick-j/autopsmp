@@ -26,6 +26,9 @@ reset=`tput sgr0`
 OS=""
 VERSION=0
 DOCKER=0
+ENABLEADBRIDGE=0
+PSMPSRVSTATUS=0
+PSMPADBSTATUS=0
 
 # Generic output functions
 print_head(){
@@ -110,6 +113,15 @@ system_prep(){
       esac
     done
   fi
+
+  # Prompt to enable AD Bridge
+  print_info "Enable PSMP AD Bridging?"
+  select yn in "Yes" "No"; do
+    case $yn in
+      Yes ) print_info "Install will enable AD Bridging capability, proceeding"; ENABLEADBRIDGE=1; break;;
+      No ) print_info "Install will not enable AD Bridging capability, proceeding..."; ENABLEADBRIDGE=0; break;;
+    esac
+  done
 
   # Prompt for EULA Acceptance
   print_info "Have you read and accepted the CyberArk EULA?"
@@ -293,6 +305,9 @@ psmpparms_mod(){
     sed -i "s+InstallationFolder.*+InstallationFolder=$foldervar+g" /var/tmp/psmpparms
     sed -i "s+AcceptCyberArkEULA=No+AcceptCyberArkEULA=Yes+g" /var/tmp/psmpparms
     sed -i "s+InstallCyberArkSSHD=Integrated+InstallCyberArkSSHD=$cyberarksshd+g" /var/tmp/psmpparms
+    if [[ $ENABLEADBRIDGE -eq 0 ]] ; then
+      sed -i "s+#EnableADBridge=No+EnableADBridge=Yes+g" /var/tmp/psmparms
+    fi
   else
     # Error - File not found
     print_error "psmpparms.sample file not found, verify needed files have been copied over. Exiting now..."
@@ -375,20 +390,20 @@ service_status(){
   psmpsrvStatus=0
   shopt -s nocasematch
   # Docker Container
-  if [[ $DOCKER == 1 ]] ; then
+  if [[ $DOCKER -eq 1 ]] ; then
     print_info "Installing on Docker - Checking status via /etc/init.d/psmpsrv"
     psmpsrvStatus=$(/etc/init.d/psmpsrv status psmp | grep -i -c "running")
     #psmpadbStatus=$(/etc/init.d/psmpsrv status psmpadb | grep -i -c "running")
   fi
 
-  if [[ $DOCKER == 0 ]] ; then
+  if [[ $DOCKER -eq 0 ]] ; then
   # RHEL 7 / CentOS 7 
     if [[ $OS == "centos" ]] || [[ $OS == "rhel" ]] ; then
-      if [ $VERSION == 7 ] ; then
+      if [ $VERSION -eq 7 ] ; then
         print_info "Installing on $OS version 7 - Checking status via service"
         psmpsrvStatus=$(service psmpsrv status psmp | grep -i -c "active")
         #psmpadbStatus=$(service psmpsrv status psmpadb | grep -i -c "active")
-      elif [[ $VERSION == 8 ]] ; then 
+      elif [[ $VERSION -eq 8 ]] ; then 
         print_info "Installing on $OS version 8 - Checking status via systemctl"
         psmpsrvStatus=$(systemctl status psmpsrv | grep -i -c "active")
         #psmpadbStatus=$(systemctl status psmpsrv-psmpadserver | grep -i -c "active")
@@ -396,7 +411,7 @@ service_status(){
     fi
   fi
   
-  if [[ $psmpsrvStatus == 0 ]] ; then
+  if [[ $psmpsrvStatus -eq 0 ]] ; then
     print_error "PSM SSH Proxy service is not active. Review logs for errors."
     exit 1
   else
