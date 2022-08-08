@@ -11,6 +11,7 @@ function main(){
   vaultini_mod
   install_prerequisites
   install_psmp
+  service_status
   system_cleanup
 }
 
@@ -368,31 +369,41 @@ install_psmp(){
   fi
 }
 
-service_verification(){
+service_status(){
+  print_head "Step 6: Verifying Services are active"
   # Verify services are running. If not running warn user.
+  psmpsrvStatus=0
   shopt -s nocasematch
   # Docker Container
-  if [ $DOCKER == 1 ] ; then
+  if [[ $DOCKER == 1 ]] ; then
+    print_info "Installing on Docker - Checking status via /etc/init.d/psmpsrv"
     psmpsrvStatus=$(/etc/init.d/psmpsrv status psmp | grep -i -c "running")
     #psmpadbStatus=$(/etc/init.d/psmpsrv status psmpadb | grep -i -c "running")
-  else if [ $DOCKER == 0 ] ; then
+  fi
+
+  if [[ $DOCKER == 0 ]] ; then
   # RHEL 7 / CentOS 7 
-    if [ $OS == "centos" ] || [ $OS == "rhel" ]; then
+    if [[ $OS == "centos" ]] || [[ $OS == "rhel" ]] ; then
       if [ $VERSION == 7 ] ; then
+        print_info "Installing on $OS version 7 - Checking status via service"
         psmpsrvStatus=$(service psmpsrv status psmp | grep -i -c "active")
         #psmpadbStatus=$(service psmpsrv status psmpadb | grep -i -c "active")
-      else if [ $VERSION == 8 ] ; then
+      elif [[ $VERSION == 8 ]] ; then 
+        print_info "Installing on $OS version 8 - Checking status via systemctl"
         psmpsrvStatus=$(systemctl status psmpsrv | grep -i -c "active")
+        #psmpadbStatus=$(systemctl status psmpsrv-psmpadserver | grep -i -c "active")
       fi
     fi
   fi
   
-  if [ $psmpsrvStatus == 0 ] ; then
+  if [[ $psmpsrvStatus == 0 ]] ; then
     print_error "PSM SSH Proxy service is not active. Review logs for errors."
+    exit 1
   else
     print_success "PSM SSH Proxy service is active."
   fi
 }
+
 system_cleanup(){
   # Cleaning up system files used during install
   print_head "Step 6: System Cleanup"
