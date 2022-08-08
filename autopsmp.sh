@@ -14,12 +14,17 @@ function main(){
   system_cleanup
 }
 
-
 # Global Color Variable
-  white=`tput setaf 7`
-  green=`tput setaf 2`
-  red=`tput setaf 1`
-  reset=`tput sgr0`
+white=`tput setaf 7`
+green=`tput setaf 2`
+yellow=`tput setaf 3`
+red=`tput setaf 1`
+reset=`tput sgr0`
+
+# Global Variables
+OS=""
+VERSION=0
+DOCKER=0
 
 # Generic output functions
 print_head(){
@@ -30,16 +35,20 @@ print_head(){
   echo ""
 }
 print_info(){
-  echo "${white}INFO: $1${reset}"
-  echo `date` "INFO: $1" >> autopsmp.log
+  echo "${white}$(date) | INFO    | $1${reset}"
+  echo "$(date) | INFO    | $1" >> autopsmp.log
 }
 print_success(){
-  echo "${green}SUCCESS: $1${reset}"
-  echo "SUCCESS: $1" >> autopsmp.log
+  echo "${green}$(date) | SUCCESS | $1${reset}"
+  echo "$(date) | SUCCESS | $1" >> autopsmp.log
+}
+print_warning(){
+  echo "${yellow}$(date) | WARNING | $1${reset}"
+  echo "$(date) | WARNING | $1" >> autopsmp.log
 }
 print_error(){
-  echo "${red}ERROR: $1${reset}"
-  echo "ERROR: $1" >> autopsmp.log
+  echo "${red}$(date) | ERROR   | $1${reset}"
+  echo "$(date) | ERROR   | $1" >> autopsmp.log
 }
 
 # Main installation functions
@@ -49,24 +58,27 @@ system_prep(){
   # Generate initial log file  
   touch autopsmp.log
   echo "Log file generated on $(date)" >> autopsmp.log
+  
+  # Gather OS Information
+  gatherFacts
 
   # Verifying maintenance user exists
   local username="proxymng"
   print_info "Checking to see if maintenance user \"$username\" exists"
   if id $username >/dev/null 2>&1; then
-    print_info "User exists, moving on to next step. Ensure password is set prior to reboot"
+    print_info "User exists, ensure password is set prior to reboot. Proceeding..."
   else
     local done=0
     while : ; do
-      print_error "Maintenance user does not exist, would you like to create \"$username\" user?"
+      print_warning "Maintenance user does not exist, would you like to create \"$username\" user?"
       select yn in "Yes" "No"; do
         case $yn in
           Yes ) createuser "$username"; done=1; break;;
-          No ) echo ""; print_error "If you do not create a maintenance user you may not be able to log in after script completes via ssh. Create \"$username\" user?"
+          No ) print_warning "If you do not create a maintenance user you may not be able to log in after script completes via ssh. Create \"$username\" user?"
             select yn in "Yes" "No"; do
               case $yn in
                 Yes ) createuser "$username"; done=1; break;;
-                No ) echo ""; print_error "Continuing without creating maintenance user"; done=1; break;;
+                No ) print_warning "Proceeding maintenance user. Manually create before rebooting..."; done=1; break;;
               esac
             done
             if [[ "$done" -ne 0 ]]; then
@@ -82,20 +94,20 @@ system_prep(){
       fi
     done
   fi
-  echo ""
 
   # Check SELinux and recommend enabling if not enabled
   local selinuxEnforcing=""
   selinuxEnforcing=$(sestatus | grep enabled )
-  if [ -z "$selinuxEnforcing"] ; then
+  if [! -z "$selinuxEnforcing"] ; then
+    print_success "SELinux enabled. Proceeding..."
+  else
     print_error "SELinux is not enabled. CyberArk recommends enabling SELinux prior to installation. Exit and enable SELinux?"
     select yn in "Yes" "No"; do
       case $yn in
         Yes ) print_info "Exiting now..."; exit 1;;
-        No ) echo ""; print_error "Continuing without enabling SELinux."; break;;
+        No ) print_warning "Proceeding with SELinux disabled..."; break;;
       esac
     done
-    echo ""
   fi
 
   # Prompt for EULA Acceptance
@@ -106,21 +118,38 @@ system_prep(){
       No ) print_error "EULA not accepted, exiting now..."; exit 1;;
     esac
   done
-  echo ""
-
+ 
   # Print Success
   print_info "System preperation completed"
 }
 
+gatherFacts(){
+  # Container
+  if [ -f /.dockerenv ] ; then
+    print_warning "Installing PSMP in a docker container is not officially supported. Proceeding...";
+    DOCKER=1;
+  else
+    DOCKER=0;
+  fi
+
+  # OS Detection
+  if [ -f /etc/os-release ] ; then 
+    OS=$(cat /etc/os-release | awk '{ FS = "="} /^ID=/ {print $2}' | sed 's/\"//g');
+    VERSION=$(cat /etc/os-release | awk '{ FS = "="} /^VERSION_ID=/ {print $2}' | sed 's/\"//g');
+    priint_info "Detected OS: $OS";
+    print_info "Detected OS Version: $VERSION";
+  fi
+}
+
 createuser(){
   echo ""
+  #TODO: Add check for wheel group
   print_info "Creating \"$1\" user and setting permissions"
   adduser -g wheel "$1" >/dev/null 2>&1
-
+ 
   print_info "Verifying user was created"
   if id "$1" >/dev/null 2>&1; then
     print_success "User created and added to wheel group"
-    echo ""
     print_info "Please set password for \"$1\""
     passwd "$1"
   else
@@ -142,7 +171,7 @@ dir_prompt(){
     select yn in "Yes" "No"; do
       case $yn in
         Yes ) dir_prompt; break;;
-        No ) exit 1;; 
+        No ) print_error "Unable to find installation folder, exiting..."; exit 1;; 
       esac
     done
   fi	
@@ -153,17 +182,24 @@ info_prompt(){
   echo
   print_info "Requesting Vault IP and Username for PSMP Installation"
   print_info "Note: Vault user should be a predefined Administrator or have the appropriate permissions as described in the PSMP install instructions."
-  read -p 'Please enter Vault IP Address: ' ipvar
-  read -p 'Please enter Vault Username: ' uservar
+  read -erp 'Please enter Vault IP Address: ' ipvar
+  read -erp 'Please enter Vault Username: ' uservar
+  print_info "Captured $ipvar for Address and $uservar for username. Proceed?"
+  select pc in "Proceed" "Change"; do
+    case $pc in 
+      Proceed ) print_info "Proceeding..."; break;;
+      Change ) info_prompt; break ;;
+    esac
+  done
 }
 
 pass_prompt(){
   # Prompt for Vault Password info
   echo 
   print_info "Requesting Vault Password. Password must be entered twice and will be hidden"
-  read -sp 'Please enter Vault Password: ' passvar1
+  read -serp 'Please enter Vault Password: ' passvar1
   echo
-  read -sp 'Please re-enter Vault Password: ' passvar2
+  read -serp 'Please re-enter Vault Password: ' passvar2
   echo
   # Test if passwords match
   if [[ "$passvar1" == "$passvar2" ]]; then
@@ -268,7 +304,6 @@ install_prerequisites(){
   # Installing PSMP Pre-Requisites using rpm files
   print_head "Step 4: Installing PSMP Pre-Requisites"
   print_info "Verifying Pre-Requisites are present"
-  #TODO - Check if LIBSSH is already installed, if so uninstall it
   if rpm -qa libssh 2>&1 > /dev/null; then
     print_info "libssh is already installed, skipping..."
   else
@@ -333,6 +368,31 @@ install_psmp(){
   fi
 }
 
+service_verification(){
+  # Verify services are running. If not running warn user.
+  shopt -s nocasematch
+  # Docker Container
+  if [ $DOCKER == 1 ] ; then
+    psmpsrvStatus=$(/etc/init.d/psmpsrv status psmp | grep -i -c "running")
+    #psmpadbStatus=$(/etc/init.d/psmpsrv status psmpadb | grep -i -c "running")
+  else if [ $DOCKER == 0 ] ; then
+  # RHEL 7 / CentOS 7 
+    if [ $OS == "centos" ] || [ $OS == "rhel" ]; then
+      if [ $VERSION == 7 ] ; then
+        psmpsrvStatus=$(service psmpsrv status psmp | grep -i -c "active")
+        #psmpadbStatus=$(service psmpsrv status psmpadb | grep -i -c "active")
+      else if [ $VERSION == 8 ] ; then
+        psmpsrvStatus=$(systemctl status psmpsrv | grep -i -c "active")
+      fi
+    fi
+  fi
+  
+  if [ $psmpsrvStatus == 0 ] ; then
+    print_error "PSM SSH Proxy service is not active. Review logs for errors."
+  else
+    print_success "PSM SSH Proxy service is active."
+  fi
+}
 system_cleanup(){
   # Cleaning up system files used during install
   print_head "Step 6: System Cleanup"
