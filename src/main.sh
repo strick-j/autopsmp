@@ -2,7 +2,9 @@
 
 set -e
 
+# Version
 AUTOPSMP_VERSION="0.0.1-alpha"
+
 # Logging
 VAR_TMP_D=/var/tmp
 VAR_INSTALL_LOG_F=$VAR_TMP_D/autopsmp_install.log
@@ -16,6 +18,7 @@ CYBERARKUSERNAME="Administrator"
 CYBERARKPASSWORD="Placeholder"
 CYBERARKADDRESS="192.168.100.1"
 INSTALLFILES="/tmp"
+DRYRUN=0
 
 # Generic output functions (logging, terminal, etc..)
 function write_log() {
@@ -283,6 +286,103 @@ function create_psmpparms {
   print_success "psmpparms file modified and copied to /var/tmp/"
 }
 
+function validiate_gpgkey {
+  printf "\n"
+  print_info "Verifying rpm GPG Key is present"
+  if [[ -f $INSTALLFILES/RPM-GPG-KEY-CyberArk ]]; then
+    # Import GPG Key
+    write_to_terminal "GPG Key present - Importing..."
+    #TODO: Catch import error
+    rpm --import "INSTALLFILES"/RPM-GPG-KEY-CyberArk
+  else
+    # Error - File not found
+    write_to_terminal "RPM GPG Key not found, verify needed files have been copied over. Exiting now..."
+    exit 1
+  fi  
+}
+
+function preinstall_libssh {
+  write_to_terminal "Verifying Pre-Requisites are present"
+  if rpm -qa libssh 2>&1 > /dev/null; then
+    write_to_terminal "libssh is already installed, skipping..."
+  else
+    prereqfolder=$INSTALLFILES
+    prereqfolder+="/Pre-Requisites"
+    libsshrpm=`ls $prereqfolder | grep libssh*`
+    if [[ -f $prereqfolder/$libsshrpm ]]; then
+      # Install libssh
+      write_to_terminal "libssh present - Installing $librsshrpm"
+      rpm -ih $prereqfolder/$libsshrpm
+      write_to_terminal "libssh installed, proceeding"
+    else
+      # Error - File not found
+      write_to_terminal "libssh rpm not found, verify needed Pre-Requisites have been copied over. Exiting now..."
+      exit 1
+    fi
+  fi
+}
+
+function preinstall_infra {
+  printf "\n"
+  write_to_terminal "CyberArkSSHD set to integrated mode. CARKpsmp-infra will be installed."
+  infrafolder=$INSTALLFILES
+  infrafolder+="/IntegratedMode"
+  infrarpm=$(find "$infrafolder" -name '*CARKpsmp-infra*')
+  if [[ -f $infrarpm ]]; then
+    # Install CARKpsmp-infra
+    print_info "CARKpsmp-infra present - Installing $infrarpm"
+    if [ $DRYRUN -eq 0 ] ; then
+      write_to_terminal "Starting install - $infrarpm"
+      rpm -ih "$infrarpm"
+    else
+      write_to_terminal "CARKpsmp-infra rpm found: $infrarpm"
+      write_to_terminal "Skipping installation for dryrun, proceeding..."
+    fi
+  else
+    # Error - File not found
+    write_to_terminal "CARKpsmp-infra rpm not found and is required for integrated mode, verify needed Pre-Requisites have been copied over. Exiting now..."
+    exit 1
+  fi
+}
+
+function install_psmp {
+  printf "\n"
+  write_to_terminal "Verifying PSMP rpm installer is present"
+  psmprpm=$(find "$INSTALLFILES" -name '*CARKpsmp*')
+  if [[ -f $psmprpm ]]; then
+    # Install CyberArk RPM
+    write_to_terminal "PSMP rpm installer present..."
+    printf "\n"
+    # Skip installation if dryrun
+    if [ $DRYRUN -eq 0 ] ; then
+      write_to_terminal "Starting install - $psmprpm"
+      rpm -ih "$psmprpm"
+    else
+      write_to_terminal "CARKpsmp rpm found: $psmprpm"
+      write_to_terminal "Skipping installation for dryrun, proceeding..."
+    fi
+  else
+    # Error - File not found
+    write_to_terminal "PSMP rpm install file not found, verify needed files have been copied over. Exiting now..."
+    exit 1
+  fi
+}
+
+function clean_install {
+  # Cleaning up system files used during install
+  write_to_terminal "Removing user.cred, vault.ini, and CreateCredFile Utility"
+  rm -f "$INSTALLFILES"/user.cred
+  rm -f "$INSTALLFILES"/vault.ini
+  rm -f "$INSTALLFILES"/CreateCredFile
+  if [[ -f $INSTALLFILES/user.cred ]]||[[ -f $INSTALLFILES/vault.ini ]]||[[ -f $INSTALLFILES/CreateCredFile ]]; then
+    write_to_terminal "Files could not be deleted, please manually remove..."
+    exit 1
+  else
+    write_to_terminal "PSMP installation and cleanup completed."
+    exit 0
+  fi
+}
+
 function confirm_input {
   local userinput=$1
   local inputfield=$2
@@ -304,10 +404,9 @@ function valid_ip() {
   local  ip=$1
   local  stat=1
 
-  if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+  if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]] ; then
     OIFS=$IFS
-    IFS='.'
-    ip=($ip)
+    IFS='.' read -r -a ip <<< "$ip"
     IFS=$OIFS
     [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 && ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
     stat=$?
@@ -365,6 +464,10 @@ function _start_installation {
   # Check for maintenance user  
   #check_maintenance_user
 
+  ### System checks completed
+  ###
+  ### Begin Gathering information from user
+
   write_header "Step 2: Collecting installation information."
   # Prompt for EULA Acceptance
   accept_eula
@@ -384,28 +487,52 @@ function _start_installation {
   # Prompt for Installation Mode
   mode_prompt
 
+  ### Information gathering completed
+  ###
+  ### Start installation prep
+
   write_header "Step 3: Installation Prep"
 
   # Create vault.ini
   create_vault_ini
 
   # Create psmpparms
+  create_psmpparms
 
   # Create credential file
+  create_credfile
+
+  ### Installation Prep completed
+  ###
+  ### Start pre installation tasks
 
   write_header "Step 4: Pre-Installation"
 
-  # Check for libssh, install if not present
-  #preinstall_libssh
-  
-
-  write_header "Step 5: Installation"
   # Install AD Bridge based on user input
   if [ "$ENABLEADBRIDGE" -eq "1" ] ; then
-    write_to_terminal "Installing AD Bridge"
+    preinstall_libssh
   fi
 
+  # Check for Integrated Mode - Install infra package
+  if [[ $CYBERARKSSHD == "Integrated" ]] ; then
+    preinstall_infra
+  fi
+
+  write_header "Step 5: Installation"
+
+  # Install PSMP
+  install_psmp
+
+  write_header "Step 5: Installation Verification"
+  
+  # Check Service Status
+  #verify_services
+
   write_header "Step 5: Installation cleanup"
+
+  # Clean up files created during install (credfile, vault.ini, etc...)
+  clean_installation
+
   write_log "Script execution completed."
 }
 
@@ -429,6 +556,7 @@ function main {
 
     case "$opt" in
       # Options for quick-exit strategy:
+      --dryrun) DRYRUN=1; _start_installation;;
       --debug) DEBUG=1; _start_installation;;
       --help) _show_help;;
       --version) _show_version;;

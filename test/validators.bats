@@ -42,7 +42,7 @@ source "$MAINSCRIPT"
 }
 
 @test "valid_username() invalid username, invalid characters" {
-  testusername=$(head /dev/urandom | LC_ALL=C tr -dc 'A-Za-z0-9/|:*?' | head -c 36)  
+  testusername=$(head /dev/urandom | LC_ALL=C tr -dc 'A-Za-z0-9!"#$%&()*+,-./:;<=>?@[\]^_`{|}~' | head -c 36)  
   run valid_username $testusername
   assert_output '4' 
 }
