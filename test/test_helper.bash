@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+export TMP="$BATS_TEST_DIRNAME/tmp"
+
 setup() {
     # get the containing directory of this file
     # use $BATS_TEST_FILENAME instead of ${BASH_SOURCE[0]} or $0,
@@ -10,10 +12,7 @@ setup() {
 }
 
 teardown() {
-    echo "No action to perform"
+    rm -rf "${TMP:?}"/*
+    rm -rf '/var/tmp/autopsmp_install.log'
 }
 
-existsAndExecutable() {
-    # Return true or false if file is executable or not
-    [[ -x "$1" ]]
-}

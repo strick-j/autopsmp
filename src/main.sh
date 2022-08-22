@@ -1,333 +1,277 @@
- #!/bin/bash
+#!/usr/bin/env bash
 
-function main(){
-  system_prep
-  dir_prompt
-  info_prompt
-  pass_prompt
-  mode_prompt
-  cred_create
-  psmpparms_mod
-  vaultini_mod
-  install_prerequisites
-  install_psmp
-  service_status
-  system_cleanup
-}
+set -e
 
-# Global Color Variable
-white=`tput setaf 7`
-green=`tput setaf 2`
-yellow=`tput setaf 3`
-red=`tput setaf 1`
-reset=`tput sgr0`
-
-# Global Variables
-OS=""
-VERSION=0
-DOCKER=0
-ENABLEADBRIDGE=0
-PSMPSRVSTATUS=0
-PSMPADBSTATUS=0
-
-# Log files
+AUTOPSMP_VERSION="0.0.1-alpha"
+# Logging
 VAR_TMP_D=/var/tmp
-VAR_INSTALL_LOG_F=$VAR_TMP_D/psmp_install.log
-
-# Should show logs
+VAR_INSTALL_LOG_F=$VAR_TMP_D/autopsmp_install.log
 SHOULD_SHOW_LOGS=1
+DEBUG=0
 
+# Generic Variables
+ENABLEADBRIDGE=0
+CYBERARKSSHD="Integrated"
+CYBERARKUSERNAME="Administrator"
+CYBERARKPASSWORD="Placeholder"
+CYBERARKADDRESS="192.168.100.1"
+INSTALLFILES="/tmp"
 
-# Generic output functions
-print_head(){
+# Generic output functions (logging, terminal, etc..)
+function write_log() {
+  if [ $SHOULD_SHOW_LOGS = "1" ] ; then
+    echo "$(date) | $1" >> $VAR_INSTALL_LOG_F
+    if [ $DEBUG = "1" ] ; then
+      echo "debug: $1"
+    fi
+  fi
+}
+
+function write_to_terminal() {
+  echo "$(date) |  $1" >> $VAR_INSTALL_LOG_F
+  echo "$1"
+}
+
+function write_header_to_terminal() {
   echo ""
   echo "======================================================================="
-  echo "${white}$1${reset}"
+  echo "$1"
   echo "======================================================================="
   echo ""
 }
-print_info(){
-  echo "${white}$(date) | INFO    | $1${reset}"
-  echo "$(date) | INFO    | $1" >> autopsmp.log
-}
-print_success(){
-  echo "${green}$(date) | SUCCESS | $1${reset}"
-  echo "$(date) | SUCCESS | $1" >> autopsmp.log
-}
-print_warning(){
-  echo "${yellow}$(date) | WARNING | $1${reset}"
-  echo "$(date) | WARNING | $1" >> autopsmp.log
-}
-print_error(){
-  echo "${red}$(date) | ERROR   | $1${reset}"
-  echo "$(date) | ERROR   | $1" >> autopsmp.log
-}
 
-# Main installation functions
-
-# Writing a message to the log (or terminal) in case loggin is enabled.
-WriteLog()
-{
-	if [ $SHOULD_SHOW_LOGS = "1" ] ; then
-		echo `date` "| $1" >> $VAR_INSTALL_LOG_F
-	fi
-}
-
-WriteToTerminal()
-{
-   echo `date` "| $1" >> $VAR_INSTALL_LOG_F
-   echo "$1"
-}
-
-system_prep(){
-  print_head "Step 1: System preperation - create log, check for maintenance user"
-  
-  # Generate initial log file  
-  touch autopsmp.log
-  print_info "Log file generated on $(date)" >> autopsmp.log
-  
-  # Gather OS Information
-  gatherFacts
-
-  # Verifying maintenance user exists
-  local username="proxymng"
-  print_info "Checking to see if maintenance user \"$username\" exists"
-  if id $username >/dev/null 2>&1; then
-    print_info "User exists, ensure password is set prior to reboot. Proceeding..."
+# Functional checks
+function check_se_linux() {
+  printf "\n"
+  # Check SELinux and recommend enabling if not enabled
+  write_to_terminal "Checking SELinux status"
+  selinuxconfig=/etc/selinux/config
+  if test -f "$selinuxconfig" ; then
+    local selinuxEnforcing=""
+    selinuxEnforcing=$(sestatus | grep enabled )
+    if [[ -n $selinuxEnforcing ]] ; then
+      write_to_terminal "SELinux enabled, proceeding..."
+    else
+      write_to_terminal "SELinux is not enabled. CyberArk recommends enabling SELinux prior to installation. Exit and enable SELinux?"
+      verify_se_linux
+    fi
   else
-    local done=0
-    while : ; do
-      print_warning "Maintenance user does not exist, would you like to create \"$username\" user?"
+    write_to_terminal "SELinux config file not found. CyberArk recommends enabling SELinux prior to installation. Exit and enable SELinx?"
+    verify_se_linux
+  fi
+}
+
+function verify_se_linux() {
+  select yn in "Yes" "No"; do
+    case $yn in
+      Yes )  write_to_terminal "Exiting now..."; exit 1;;
+      No ) write_to_terminal "Proceeding with SELinux disabled..."; break;;
+    esac
+  done
+}
+
+function accept_eula() {
+  printf "\n"
+  # Prompt for EULA Acceptance
+  write_to_terminal "Have you read and accepted the CyberArk EULA?"
+  select yn in "Yes" "No"; do
+    case $yn in
+      Yes ) write_to_terminal "EULA Accepted, proceeding..."; break;;
+      No ) write_to_terminal "EULA not accepted, exiting now..."; exit 1;;
+    esac
+  done
+}
+
+function enable_ad_bridge {
+  printf "\n"
+  # Prompt to enable AD Bridge
+  write_to_terminal "Enable PSMP AD Bridging?"
+  select yn in "Yes" "No"; do
+    case $yn in
+      Yes ) write_to_terminal "Install will enable AD Bridging capability, proceeding..."; ENABLEADBRIDGE=1; break;;
+      No ) write_to_terminal "Install will not enable AD Bridging capability, proceeding..."; ENABLEADBRIDGE=0; break;;
+    esac
+  done
+}
+
+function dir_prompt {
+  printf "\n"
+  # Prompt for directory info of installation folder, verify directory exists
+  write_to_terminal "Requesting installation directory information:"
+  read -rp 'Please enter the full path for the installation folder directory [e.g. /opt/psmp]: ' INSTALLFILES
+  if [[ -d $INSTALLFILES ]]; then
+    # Check for required installation files in directory
+    if [[ ! -f $INSTALLFILES/vault.ini ]] || [[ ! -f $INSTALLFILES/psmpparms.samplei ]] ; then 
+      write_to_terminal "Required files not found within directory, would you like to try again?"
       select yn in "Yes" "No"; do
         case $yn in
-          Yes ) createuser "$username"; done=1; break;;
-          No ) print_warning "If you do not create a maintenance user you may not be able to log in after script completes via ssh. Create \"$username\" user?"
-            select yn in "Yes" "No"; do
-              case $yn in
-                Yes ) createuser "$username"; done=1; break;;
-                No ) print_warning "Proceeding maintenance user. Manually create before rebooting..."; done=1; break;;
-              esac
-            done
-            if [[ "$done" -ne 0 ]]; then
-              break
-            fi
+          Yes ) dir_prompt; break;;
+          No ) write_to_terminal "Unable to find required installation files, exiting..."; exit 1;;
         esac
-        if [[ "$done" -ne 0 ]]; then
-          break
-        fi
       done
-      if [[ "$done" -ne 0 ]]; then
-        break
-      fi
-    done
-  fi
-
-  # Check SELinux and recommend enabling if not enabled
-  local selinuxEnforcing=""
-  selinuxEnforcing=$(sestatus | grep enabled )
-  if [! -z "$selinuxEnforcing"] ; then
-    print_success "SELinux enabled. Proceeding..."
-  else
-    print_error "SELinux is not enabled. CyberArk recommends enabling SELinux prior to installation. Exit and enable SELinux?"
-    select yn in "Yes" "No"; do
-      case $yn in
-        Yes ) print_info "Exiting now..."; exit 1;;
-        No ) print_warning "Proceeding with SELinux disabled..."; break;;
-      esac
-    done
-  fi
-
-  # Prompt to enable AD Bridge
-  print_info "Enable PSMP AD Bridging?"
-  select yn in "Yes" "No"; do
-    case $yn in
-      Yes ) print_info "Install will enable AD Bridging capability, proceeding"; ENABLEADBRIDGE=1; break;;
-      No ) print_info "Install will not enable AD Bridging capability, proceeding..."; ENABLEADBRIDGE=0; break;;
-    esac
-  done
-
-  # Prompt for EULA Acceptance
-  print_info "Have you read and accepted the CyberArk EULA?"
-  select yn in "Yes" "No"; do
-    case $yn in
-      Yes ) print_success "EULA Accepted, proceeding..."; break;;
-      No ) print_error "EULA not accepted, exiting now..."; exit 1;;
-    esac
-  done
- 
-  # Print Success
-  print_info "System preperation completed"
-}
-
-gatherFacts(){
-  # Container
-  if [ -f /.dockerenv ] ; then
-    print_warning "Installing PSMP in a docker container is not officially supported. Proceeding...";
-    DOCKER=1;
-  else
-    DOCKER=0;
-  fi
-
-  # OS Detection
-  if [ -f /etc/os-release ] ; then 
-    OS=$(cat /etc/os-release | awk '{ FS = "="} /^ID=/ {print $2}' | sed 's/\"//g');
-    VERSION=$(cat /etc/os-release | awk '{ FS = "="} /^VERSION_ID=/ {print $2}' | sed 's/\"//g');
-    priint_info "Detected OS: $OS";
-    print_info "Detected OS Version: $VERSION";
-  fi
-}
-
-createuser(){
-  echo ""
-  #TODO: Add check for wheel group
-  print_info "Creating \"$1\" user and setting permissions"
-  adduser -g wheel "$1" >/dev/null 2>&1
- 
-  print_info "Verifying user was created"
-  if id "$1" >/dev/null 2>&1; then
-    print_success "User created and added to wheel group"
-    print_info "Please set password for \"$1\""
-    passwd "$1"
-  else
-    print_error "User could not be created, manually add user prior to reboot"
-  fi
-}
-
-dir_prompt(){
-  print_head "Step 2: Collecting Info"
-  # Prompt for directory info of installation folder, verify directory exists
-  print_info "Requesting installation directory information"
-  read -p 'Please enter the full path for the installation folder directory [e.g. /opt/psmp]: ' foldervar
-  if [[ -d $foldervar ]]; then
-    # Directory present, subfolders have not been verified
-    print_success "Directory information confirmed as: $foldervar"
+    fi
+    # Directory present #TODO: Verify files are present
+    write_to_terminal "Directory information confirmed as: $INSTALLFILES, proceeding..."
   else
     # Directory not present, allow user to re-enter path or exit
-    print_error "Directory not found, would you like to try again?"
+    write_to_terminal "Directory not found, would you like to try again?"
     select yn in "Yes" "No"; do
       case $yn in
         Yes ) dir_prompt; break;;
-        No ) print_error "Unable to find installation folder, exiting..."; exit 1;; 
+        No ) write_to_terminal "Unable to find installation folder, exiting..."; exit 1;; 
       esac
     done
-  fi	
+  fi
 }
 
-info_prompt(){
-  # Prompt for Vault IP and Username info
-  echo
-  print_info "Requesting Vault IP and Username for PSMP Installation"
-  print_info "Note: Vault user should be a predefined Administrator or have the appropriate permissions as described in the PSMP install instructions."
-  read -erp 'Please enter Vault IP Address: ' ipvar
-  read -erp 'Please enter Vault Username: ' uservar
-  print_info "Captured $ipvar for Address and $uservar for username. Proceed?"
-  select pc in "Proceed" "Change"; do
-    case $pc in 
-      Proceed ) print_info "Proceeding..."; break;;
-      Change ) info_prompt; break ;;
+function address_prompt {
+  printf "\n"
+  write_to_terminal "Requesting Vault IP for installation:"
+  read -erp 'Please enter Vault IP Address: ' CYBERARKADDRESS
+  local res=0
+  
+# Check Address  validity
+res=$(valid_ip "$CYBERARKADDRESS")
+  if [[ $res -eq 0 ]] ; then
+    write_to_terminal "Valid IP Address provided, proceeding..."
+    confirm_input "$CYBERARKADDRESS" "Address"
+  else
+    write_to_terminal "Invalid address provided, would you like to try again?"
+    select yn in "Yes" "No"; do
+      case $yn in 
+        Yes ) address_prompt; break;;
+        No ) write_to_terminal "Invalid address provided, exiting..."; exit 1;;
+      esac
+    done
+  fi
+}
+
+function username_prompt {
+  printf "\n"
+  write_to_terminal "Requesting Vault Username for installation:"
+  read -erp 'Please enter Vault Username: ' CYBERARKUSERNAME
+  local res=0
+
+  # Check Username validity
+  res=$(valid_username "$CYBERARKUSERNAME")
+  if [[ $res -eq 0 ]] ; then
+    write_to_terminal "Valid username provided, proceeding..."
+    confirm_input "$CYBERARKUSERNAME" "Username"
+  else
+    case $res in
+      2) write_to_terminal "Username is too long.";;
+      3) write_to_terminal "Username has a leading or trailing dot or space";;
+      4) write_to_terminal "Username contains invalid characters";;
+      *) write_to_terminal "Invalid username provided."
     esac
-  done
+    write_to_terminal "Would you like to try again?"
+    select yn in "Yes" "No"; do
+      case $yn in 
+        Yes ) username_prompt; break;;
+        No ) write_to_terminal "Invalid username provided, exiting..."; exit 1;;
+      esac
+    done
+  fi
 }
 
-pass_prompt(){
+function pass_prompt {
   # Prompt for Vault Password info
-  echo 
-  print_info "Requesting Vault Password. Password must be entered twice and will be hidden"
+  printf "\n"
+  write_to_terminal "Requesting Vault Password. Password must be entered twice and will be hidden:"
   read -serp 'Please enter Vault Password: ' passvar1
   echo
   read -serp 'Please re-enter Vault Password: ' passvar2
   echo
   # Test if passwords match
   if [[ "$passvar1" == "$passvar2" ]]; then
-    print_success "Passwords match as expected, moving on to next step"
-    vaultpass="$passvar1"
+    write_to_terminal "Valid password provided, proceeding..."
+    CYBERARKPASSWORD="$passvar1"
     # Unset password variables
     unset passvar2
     unset passvar1
-    echo ""
   else
-    print_error "Passwords do not match. Please try again."
+    write_to_terminal "Passwords do not match. Please try again."
     pass_prompt
   fi
 }
 
-mode_prompt(){
+function mode_prompt {
   # Prompt for CyberArkInstallSSHD mode
-  print_info "Desired InstallCyberArkSSHD setting (Integrated, Yes, No): "
+  printf "\n"
+  write_to_terminal "Desired InstallCyberArkSSHD setting (Integrated, Yes, No): "
   select method in "Integrated" "Yes" "No"; do
     case $method in
       Integrated ) 
-        print_info "InstallCyberArkSSHD=Integrated. Proceeding..."
-        cyberarksshd="Integrated"
+        write_to_terminal "InstallCyberArkSSHD=Integrated, proceeding..."
+        CYBERARKSSHD="Integrated"
         break;;
       Yes ) 
-        print_info "InstallCyberArkSSHD=Yes. Proceeding..."
-        cyberarksshd="Yes"
+        write_to_terminal "InstallCyberArkSSHD=Yes, proceeding..."
+        CYBERARKSSHD="Yes"
         break;;
       No ) 
-        print_info "InstallCyberArkSSHD=No, some limitations apply. Proceeding..."
-        cyberarksshd="No"
+        write_to_terminal "InstallCyberArkSSHD=No, some limitations apply, proceeding..."
+        CYBERARKSSHD="No"
         break;;
       *)
-        Print_error "Invalid option"
+        write_to_terminal "Invalid option."
         mode_prompt
     esac
   done
-  echo ""
 }
 
-cred_create(){
+function create_vault_ini {
+  # Modifing vault.ini file with information provided above
+  printf "\n"
+  write_to_terminal "Updating vault.ini file with Vault IP: $CYBERARKADDRESS"
+  # Verify vault.ini file is present, exit if not
+  if [[ -f $INSTALLFILES/vault.ini ]]; then
+    # Modify IP address in vault.ini file
+    cp "$INSTALLFILES"/vault.ini "$INSTALLFILES"/vault.ini.bak
+    sed -i "s+ADDRESS=.*+ADDRESS=$CYBERARKADDRESS+g" "$INSTALLFILES"/vault.ini
+  else
+    # Error - File not found
+    write_to_terminal "vault.ini file not found, verify needed files have been copied over. Exiting now..."
+    exit 1
+  fi
+  write_to_terminal "Completed vault.ini file modifications"
+}
+
+function create_credfile {
+  printf "\n"
   # Create credential file with username and password provided above
-  print_head "Step 3: Modifying Files"
   print_info "Creating Credential File for authorization to Vault"
   # Verify CreateCredFile is present, exit if not
-  if [[ -f $foldervar/CreateCredFile ]];then
+  if [[ -f $INSTALLFILES/CreateCredFile ]];then
     # Modify permissions and create credential file
-    chmod 755 $foldervar/CreateCredFile
-    $foldervar/CreateCredFile $foldervar/user.cred Password -username $uservar -password $vaultpass -EntropyFile >> autopsmp.log 2>&1
+    chmod 755 "$INSTALLFILES"/CreateCredFile
+    "$INSTALLFILES"/CreateCredFile "$INSTALLFILES"/user.cred Password -username "$CYBERARKUSERNAME" -password "$CYBERARKPASSWORD" -EntropyFile >> autopsmp.log 2>&1
     # Unset password variable
-    unset vaultpass
+    unset CYBERARKPASSWORD 
     vercredvar=$(tail -1 autopsmp.log)
     if [[ "$vercredvar" == "Command ended successfully" ]]; then
-      print_success "Credential file created successfully"
+      write_to_terminal "Credential file created successfully, proceeding..."
     else
-      print_error "Credential file not created sueccessfully. Exiting now..."
+      write_to_terminal "Credential file not created sueccessfully. Exiting now..."
       exit 1
     fi
   else
-    print_error "CreateCredFile file not found, verify needed files have been copied over. Exiting now..."
+    write_to_terminal "CreateCredFile file not found, verify needed files have been copied over. Exiting now..."
     exit 1
   fi
 }
 
-vaultini_mod(){
-  # Modifing vault.ini file with information provided above
-  echo
-  print_info "Updating vault.ini file with Vault IP: $ipvar"
-  # Verify vault.ini file is present, exit if not
-  if [[ -f $foldervar/vault.ini ]]; then
-    # Modify IP address in vault.ini file
-    cp $foldervar/vault.ini $foldervar/vault.ini.bak
-    sed -i "s+ADDRESS=.*+ADDRESS=$ipvar+g" $foldervar/vault.ini
-  else
-    # Error - File not found
-    print_error "vault.ini file not found, verify needed files have been copied over. Exiting now..."
-    exit 1
-  fi
-  print_success "Completed vault.ini file modifications"
-}
-
-psmpparms_mod(){
-  # Update psmpparms file with information provided above
-  echo
-  print_info "Updating psmpparms file with user provided information"
+function create_psmpparms {
+  printf "\n"
+  # Update psmpparms file with userprovided information
+  write_to_terminal "Updating psmpparms file with user provided information"
   # Verify psmpparms.sample is present, exit if not
-  if [[ -f $foldervar/psmpparms.sample ]]; then
+  if [[ -f $INSTALLFILES/psmpparms.sample ]]; then
     # Create psmpparms file and modify variables
-    cp $foldervar/psmpparms.sample /var/tmp/psmpparms
-    sed -i "s+InstallationFolder.*+InstallationFolder=$foldervar+g" /var/tmp/psmpparms
+    cp "$INSTALLFILES"/psmpparms.sample /var/tmp/psmpparms
+    sed -i "s+InstallationFolder.*+InstallationFolder=$INSTALLFILES+g" /var/tmp/psmpparms
     sed -i "s+AcceptCyberArkEULA=No+AcceptCyberArkEULA=Yes+g" /var/tmp/psmpparms
-    sed -i "s+InstallCyberArkSSHD=Integrated+InstallCyberArkSSHD=$cyberarksshd+g" /var/tmp/psmpparms
+    sed -i "s+InstallCyberArkSSHD=Integrated+InstallCyberArkSSHD=$CYBERARKSSHD+g" /var/tmp/psmpparms
     if [[ $ENABLEADBRIDGE -eq 0 ]] ; then
       sed -i "s+#EnableADBridge=No+EnableADBridge=Yes+g" /var/tmp/psmparms
     fi
@@ -339,126 +283,161 @@ psmpparms_mod(){
   print_success "psmpparms file modified and copied to /var/tmp/"
 }
 
-install_prerequisites(){
-  # Installing PSMP Pre-Requisites using rpm files
-  print_head "Step 4: Installing PSMP Pre-Requisites"
-  print_info "Verifying Pre-Requisites are present"
-  if rpm -qa libssh 2>&1 > /dev/null; then
-    print_info "libssh is already installed, skipping..."
-  else
-    prereqfolder=$foldervar
-    prereqfolder+="/Pre-Requisites"
-    libsshrpm=`ls $prereqfolder | grep libssh*`
-    if [[ -f $prereqfolder/$libsshrpm ]]; then
-      # Install libssh
-      print_info "libssh present - Installing $librsshrpm"
-      echo ""
-      rpm -ih $prereqfolder/$libsshrpm
-    else
-      # Error - File not found
-      print_error "libssh rpm not found, verify needed Pre-Requisites have been copied over. Exiting now..."
-      exit 1
-    fi
-  fi
-
-  # Check if installing in integrated mode, if so install infra package
-  if [[ $cyberarksshd == "Integrated" ]]; then
-    print_info "CyberArkSSHD set to integrated mode. CARKpsmp-infra will be installed."
-    infrafolder=$foldervar
-    infrafolder+="/IntegratedMode"
-    infrarpm=`ls $infrafolder | grep CARKpsmp-infra*`
-    if [[ -f $infrafolder/$infrarpm ]]; then
-      # Install CARKpsmp-infra
-      print_info "CARKpsmp-infra present - Installing $infrarpm"
-      echo ""
-      rpm -ih $infrafolder/$infrarpm
-    else
-      # Error - File not found
-      print_error "CARKpsmp-infra rpm not found and is required for integrated mode, verify needed Pre-Requisites have been copied over. Exiting now..."
-      exit 1
-    fi
-  fi
+function confirm_input {
+  local userinput=$1
+  local inputfield=$2
+  write_to_terminal "You entered ${userinput} for Vault ${inputfield}. Proceed or enter again?"
+  select pc in "Proceed" "Change"; do
+    case $pc in
+      Proceed ) write_to_terminal "Input confirmed, proceeding..."; break;;
+      Change ) 
+        case $inputfield in
+          Address ) address_prompt; break;;
+          Username ) username_prompt; break;;
+        esac
+    esac
+  done
 }
 
-install_psmp(){
-  # Installing PSMP using rpm file
-  print_head "Step 5: Installing PSMP"
-  print_info "Verifying rpm GPG Key is present"
-  if [[ -f $foldervar/RPM-GPG-KEY-CyberArk ]]; then
-    # Import GPG Key
-    print_info "GPG Key present - Importing..."
-    rpm --import $foldervar/RPM-GPG-KEY-CyberArk
-  else
-    # Error - File not found
-    print_error "RPM GPG Key not found, verify needed files have been copied over. Exiting now..."
-    exit 1
+function valid_ip() {
+  # Check for valid IP Address from user input
+  local  ip=$1
+  local  stat=1
+
+  if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+    OIFS=$IFS
+    IFS='.'
+    ip=($ip)
+    IFS=$OIFS
+    [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 && ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
+    stat=$?
   fi
-  print_info "Verifying PSMP rpm installer is present"
-  psmprpm=`ls $foldervar | grep CARKpsmp*`
-  if [[ -f $foldervar/$psmprpm ]]; then
-    # Install CyberArk RPM
-    print_info "PSMP rpm installer present - installing $psmprpm"
-    echo ""
-    rpm -ih $foldervar/$psmprpm
-  else
-    # Error - File not found
-    print_error "Necessry rpm installer not found, verify needed files have been copied over. Exiting now..."
-    exit 1
-  fi
+  echo $stat
 }
 
-service_status(){
-  print_head "Step 6: Verifying Services are active"
-  # Verify services are running. If not running warn user.
-  psmpsrvStatus=0
-  shopt -s nocasematch
-  # Docker Container
-  if [[ $DOCKER -eq 1 ]] ; then
-    print_info "Installing on Docker - Checking status via /etc/init.d/psmpsrv"
-    psmpsrvStatus=$(/etc/init.d/psmpsrv status psmp | grep -i -c "running")
-    #psmpadbStatus=$(/etc/init.d/psmpsrv status psmpadb | grep -i -c "running")
+function valid_username() {
+  # Vault usernames have the following requirements
+  # - No larger than 128 Characters
+  # - Cannot start or end with a period or space
+  # - cannot contain the following characters
+  #   - \/:*?"<>|\t\r\n\x1F
+  local username=$1
+  local stat=1
+
+  local leading="${username:0:1}"
+  local trailing="${username: -1}"
+
+  # Check length, leading and trailing characters, and invalid characters
+  if [ "${#username}" -ge 129 ] ; then
+    stat=2
+  elif [[ $leading = *[\.[:space:]]* ]] || [[ $trailing = *[\.[:space:]]* ]] ; then
+    stat=3
+  elif [[ $username = *[\\/:*?'"''<''>''|'$'\t\r\n\x1f']* ]] ; then
+    stat=4
+  else
+    stat=0
   fi
 
-  if [[ $DOCKER -eq 0 ]] ; then
-  # RHEL 7 / CentOS 7 
-    if [[ $OS == "centos" ]] || [[ $OS == "rhel" ]] ; then
-      if [ $VERSION -eq 7 ] ; then
-        print_info "Installing on $OS version 7 - Checking status via service"
-        psmpsrvStatus=$(service psmpsrv status psmp | grep -i -c "active")
-        #psmpadbStatus=$(service psmpsrv status psmpadb | grep -i -c "active")
-      elif [[ $VERSION -eq 8 ]] ; then 
-        print_info "Installing on $OS version 8 - Checking status via systemctl"
-        psmpsrvStatus=$(systemctl status psmpsrv | grep -i -c "active")
-        #psmpadbStatus=$(systemctl status psmpsrv-psmpadserver | grep -i -c "active")
-      fi
-    fi
+  echo $stat
+}
+
+function valid_pass() {
+  local pass=$1
+  local stat=1
+
+  if [ "${#pass}" -le 39 ] ; then
+    stat=0
   fi
   
-  if [[ $psmpsrvStatus -eq 0 ]] ; then
-    print_error "PSM SSH Proxy service is not active. Review logs for errors."
-    exit 1
-  else
-    print_success "PSM SSH Proxy service is active."
+  echo $stat
+}
+ 
+function _start_installation {
+  write_log "Starting script execution..."
+
+  write_header_to_terminal "Step 1: Validating installation requirements"
+
+  # Check Operating System
+  #check_os
+  # Check SELinux Status - CyberArk recommends enabling before install
+  check_se_linux
+  
+  # Check for maintenance user  
+  #check_maintenance_user
+
+  write_header "Step 2: Collecting installation information."
+  # Prompt for EULA Acceptance
+  accept_eula
+
+  # Prompt to Enable AD Bridging?
+  enable_ad_bridge
+
+  # Prompt for Vault IP Address
+  address_prompt
+
+  # Prompt for Vault Username
+  username_prompt
+
+  # Prompt for Vault Password
+  pass_prompt
+
+  # Prompt for Installation Mode
+  mode_prompt
+
+  write_header "Step 3: Installation Prep"
+
+  # Create vault.ini
+  create_vault_ini
+
+  # Create psmpparms
+
+  # Create credential file
+
+  write_header "Step 4: Pre-Installation"
+
+  # Check for libssh, install if not present
+  #preinstall_libssh
+  
+
+  write_header "Step 5: Installation"
+  # Install AD Bridge based on user input
+  if [ "$ENABLEADBRIDGE" -eq "1" ] ; then
+    write_to_terminal "Installing AD Bridge"
   fi
+
+  write_header "Step 5: Installation cleanup"
+  write_log "Script execution completed."
 }
 
-system_cleanup(){
-  # Cleaning up system files used during install
-  print_head "Step 6: System Cleanup"
-  print_info "Removing user.cred, vault.ini, and CreateCredFile Utility"
-  rm -f $foldervar/user.cred
-  rm -f $foldervar/vault.ini
-  rm -f $foldervar/CreateCredFile
-  if [[ -f $foldervar/user.cred ]]||[[ -f $foldervar/vault.ini ]]||[[ -f $foldervar/CreateCredFile ]]; then
-    print_error "Files could not be deleted, please manually remove..."
-  else
-    print_success "System cleanup completed"
-  fi
-  echo ""
+function _show_help {
+  echo "Help Placeholder"  
+  exit 0
 }
 
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]
+function _show_version {
+  echo "$AUTOPSMP_VERSION"
+  exit 0
+}
+
+function main {
+  if [[ $# == 0 ]] ; then
+    _start_installation
+  fi
+
+  while [[ $# -gt 0 ]]; do
+    local opt="$1"
+
+    case "$opt" in
+      # Options for quick-exit strategy:
+      --debug) DEBUG=1; _start_installation;;
+      --help) _show_help;;
+      --version) _show_version;;
+      *) break;;  # do nothing
+    esac
+  done
+}
+
+if [ "${BASH_SOURCE[0]}" -ef "$0" ]
 then
-  main
+  main "$@" # To pass the argument list
 fi
-

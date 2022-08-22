@@ -1,22 +1,20 @@
 #!/usr/bin/env bats
 
-load _test_helper
+load test_helper
 load 'libs/bats-assert/load'
 load 'libs/bats-support/load'
 load 'libs/bats-file/load'
 
-MAINSCRIPT="$BATS_TEST_DIRNAME/../src/main.sh"
-source "$MAINSCRIPT"
+main_script="$BATS_TEST_DIRNAME/../src/main.sh"
+source "$main_script"
 
-@test "TestOutput: WriteToTerminal" {
-    run WriteToTerminal "test"
-
-    assert_equal "$status" 0
+@test "write_to_terminal() success" {
+    run write_to_terminal "test"
+    assert_success
     assert_output "test"
 }
 
-@test "TestOutput: WriteToLog" {
-    run WriteLog "test"
-    
-    assert_exists var/tmp/psmp_install.log   
+@test "write_log() success" {
+    run write_log "test"
+    assert_exists "$VAR_INSTALL_LOG_F"   
 }
