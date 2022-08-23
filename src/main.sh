@@ -273,7 +273,7 @@ function create_psmpparms() {
   # Verify psmpparms.sample is present, exit if not
   if [[ -f $INSTALLFILES/psmpparms.sample ]]; then
     # Create psmpparms file and modify variables
-    cp "$INSTALLFILES"/psmpparms.sample /var/tmp/psmpparms
+    cp "$INSTALLFILES"/psmpparms.sample "$TMPDIR"/psmpparms
     sed -i "s+InstallationFolder.*+InstallationFolder=$INSTALLFILES+g" "$TMPDIR"/psmpparms
     sed -i "s+AcceptCyberArkEULA=No+AcceptCyberArkEULA=Yes+g" /var/tmp/psmpparms
     sed -i "s+InstallCyberArkSSHD=Integrated+InstallCyberArkSSHD=$CYBERARKSSHD+g" "$TMPDIR"/psmpparms
@@ -282,10 +282,10 @@ function create_psmpparms() {
     fi
   else
     # Error - File not found
-    print_error "psmpparms.sample file not found, verify needed files have been copied over. Exiting now..."
+    write_to_terminal "psmpparms.sample file not found, verify needed files have been copied over. Exiting now..."
     exit 1
   fi
-  print_success "psmpparms file modified and copied to /var/tmp/"
+  write_to_terminal "psmpparms file modified and copied to $TMPDIR, proceeding..."
 }
 
 function validiate_gpgkey {

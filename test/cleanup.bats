@@ -8,7 +8,7 @@ load 'libs/bats-file/load'
 MAINSCRIPT="$BATS_TEST_DIRNAME/../src/main.sh"
 source "$MAINSCRIPT"
 
-@test "install_psmp()" {
+@test "clean_install() - success" {
   tmp_dir="$BATS_TEST_DIRNAME/tmp/tmp_dir"
   tmp_cred="user.cred"
   tmp_vault="vault.ini"

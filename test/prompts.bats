@@ -150,6 +150,7 @@ $valid_ip"
 @test "mode_prompt() accepts 3 and proceeds" {
   run mode_prompt <<< '3'
   assert_success
+  # TODO: Validate variable set properly
   assert_output --partial 'proceeding'
 }
 
@@ -198,10 +199,4 @@ $pass2
 $pass1
 $pass1"
   assert_output --partial 'proceeding'
-}
-
-@test "valid_pass() invalid password, length > 39" {
-  pass="ThisPasswordIsWayToLongForThisTest"
-  run valid_pass $pass
-  assert_output '1'
 }

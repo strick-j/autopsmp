@@ -3,16 +3,40 @@
 export TMP="$BATS_TEST_DIRNAME/tmp"
 
 setup() {
-    # get the containing directory of this file
-    # use $BATS_TEST_FILENAME instead of ${BASH_SOURCE[0]} or $0,
-    # as those will point to the bats executable's location or the preprocessed file respectively
-    DIR="$( cd "$( dirname "$BATS_TEST_FILENAME" )" >/dev/null 2>&1 && pwd )"
-    # make executables in src/ visible to PATH
-    PATH="$DIR/../src:$PATH"
+  load 'libs/bats-support/load'
+  load 'libs/bats-assert/load'
+  load 'libs/bats-file/load'
+  DIR="$( cd "$( dirname "$BATS_TEST_FILENAME" )" >/dev/null 2>&1 && pwd )"
+  PATH="$DIR/../src:$PATH"
 }
 
 teardown() {
-    rm -rf "${TMP:?}"/*
-    rm -rf '/var/tmp/autopsmp_install.log'
+  rm -rf "${TMP:?}"/*
+  rm -rf '/var/tmp/autopsmp_install.log'
 }
 
+function helper_vaultini() {
+  touch "${TMP}/tmp_dir/vault.ini"
+  cat << EOF > "${TMP}/tmp_dir/vault.ini"
+VAULT="Demo Vault"
+ADDRESS=1.1.1.1
+PORT=1858
+TIMEOUT=10
+EOF
+}
+
+function helper_createcredfile() {
+  touch "${TMP}/tmp_dir/CreateCredFile"
+}
+
+function helper_psmpparms() {
+  touch "${TMP}/tmp_dir/psmpparms.sample"
+  cat << EOF > "${TMP}/tmp_dir/psmpparms.sample"
+[Main]
+InstallationFolder=<Folder Path>
+InstallCyberArkSSHD=Integrated
+Hardening=Yes
+AcceptCyberArkEULA=No
+#EnableADBridge=Yes
+EOF
+}
