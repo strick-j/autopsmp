@@ -19,6 +19,7 @@ CYBERARKPASSWORD="Placeholder"
 CYBERARKADDRESS="192.168.100.1"
 INSTALLFILES="/tmp"
 DRYRUN=0
+TMPDIR="/var/tmp"
 
 # Generic output functions (logging, terminal, etc..)
 function write_log() {
@@ -229,6 +230,7 @@ function create_vault_ini {
   write_to_terminal "Updating vault.ini file with Vault IP: $CYBERARKADDRESS"
   # Verify vault.ini file is present, exit if not
   if [[ -f $INSTALLFILES/vault.ini ]]; then
+    write_to_terminal "Found vault.ini, making backup and proceeding..."
     # Modify IP address in vault.ini file
     cp "$INSTALLFILES"/vault.ini "$INSTALLFILES"/vault.ini.bak
     sed -i "s+ADDRESS=.*+ADDRESS=$CYBERARKADDRESS+g" "$INSTALLFILES"/vault.ini
@@ -237,7 +239,7 @@ function create_vault_ini {
     write_to_terminal "vault.ini file not found, verify needed files have been copied over. Exiting now..."
     exit 1
   fi
-  write_to_terminal "Completed vault.ini file modifications"
+  write_to_terminal "Completed vault.ini file modifications, proceeding..."
 }
 
 function create_credfile {
@@ -262,21 +264,21 @@ function create_credfile {
     write_to_terminal "CreateCredFile file not found, verify needed files have been copied over. Exiting now..."
     exit 1
   fi
+  printf "\n"
 }
 
-function create_psmpparms {
-  printf "\n"
+function create_psmpparms() {
   # Update psmpparms file with userprovided information
   write_to_terminal "Updating psmpparms file with user provided information"
   # Verify psmpparms.sample is present, exit if not
   if [[ -f $INSTALLFILES/psmpparms.sample ]]; then
     # Create psmpparms file and modify variables
     cp "$INSTALLFILES"/psmpparms.sample /var/tmp/psmpparms
-    sed -i "s+InstallationFolder.*+InstallationFolder=$INSTALLFILES+g" /var/tmp/psmpparms
+    sed -i "s+InstallationFolder.*+InstallationFolder=$INSTALLFILES+g" "$TMPDIR"/psmpparms
     sed -i "s+AcceptCyberArkEULA=No+AcceptCyberArkEULA=Yes+g" /var/tmp/psmpparms
-    sed -i "s+InstallCyberArkSSHD=Integrated+InstallCyberArkSSHD=$CYBERARKSSHD+g" /var/tmp/psmpparms
+    sed -i "s+InstallCyberArkSSHD=Integrated+InstallCyberArkSSHD=$CYBERARKSSHD+g" "$TMPDIR"/psmpparms
     if [[ $ENABLEADBRIDGE -eq 0 ]] ; then
-      sed -i "s+#EnableADBridge=No+EnableADBridge=Yes+g" /var/tmp/psmparms
+      sed -i "s+#EnableADBridge=No+EnableADBridge=Yes+g" "$TMPDIR"/psmparms
     fi
   else
     # Error - File not found
@@ -308,12 +310,12 @@ function preinstall_libssh {
   else
     prereqfolder=$INSTALLFILES
     prereqfolder+="/Pre-Requisites"
-    libsshrpm=`ls $prereqfolder | grep libssh*`
+    libsshrpm=$(find "$prereqfolder" -name '*libssh*')
     if [[ -f $prereqfolder/$libsshrpm ]]; then
       # Install libssh
-      write_to_terminal "libssh present - Installing $librsshrpm"
-      rpm -ih $prereqfolder/$libsshrpm
-      write_to_terminal "libssh installed, proceeding"
+      write_to_terminal "libssh present - Installing $libsshrpm"
+      rpm -ih "$libsshrpm"
+      write_to_terminal "$libsshrpm installed, proceeding..."
     else
       # Error - File not found
       write_to_terminal "libssh rpm not found, verify needed Pre-Requisites have been copied over. Exiting now..."
@@ -334,6 +336,7 @@ function preinstall_infra {
     if [ $DRYRUN -eq 0 ] ; then
       write_to_terminal "Starting install - $infrarpm"
       rpm -ih "$infrarpm"
+      write_to_terminal "$infrarpm installed, proceeding..."
     else
       write_to_terminal "CARKpsmp-infra rpm found: $infrarpm"
       write_to_terminal "Skipping installation for dryrun, proceeding..."
@@ -345,7 +348,7 @@ function preinstall_infra {
   fi
 }
 
-function install_psmp {
+function install_psmp() {
   printf "\n"
   write_to_terminal "Verifying PSMP rpm installer is present"
   psmprpm=$(find "$INSTALLFILES" -name '*CARKpsmp*')
@@ -368,7 +371,7 @@ function install_psmp {
   fi
 }
 
-function clean_install {
+function clean_install() {
   # Cleaning up system files used during install
   write_to_terminal "Removing user.cred, vault.ini, and CreateCredFile Utility"
   rm -f "$INSTALLFILES"/user.cred
@@ -383,7 +386,7 @@ function clean_install {
   fi
 }
 
-function confirm_input {
+function confirm_input() {
   local userinput=$1
   local inputfield=$2
   write_to_terminal "You entered ${userinput} for Vault ${inputfield}. Proceed or enter again?"
@@ -451,10 +454,12 @@ function valid_pass() {
   echo $stat
 }
  
-function _start_installation {
+function _start_installation() {
   write_log "Starting script execution..."
 
-  write_header_to_terminal "Step 1: Validating installation requirements"
+  ### Begin System Validation
+
+  write_header "Step 1: Validating installation requirements"
 
   # Check Operating System
   #check_os
@@ -464,7 +469,7 @@ function _start_installation {
   # Check for maintenance user  
   #check_maintenance_user
 
-  ### System checks completed
+  ### System validation completed
   ###
   ### Begin Gathering information from user
 
@@ -489,7 +494,7 @@ function _start_installation {
 
   ### Information gathering completed
   ###
-  ### Start installation prep
+  ### Begin installation prep
 
   write_header "Step 3: Installation Prep"
 
@@ -504,7 +509,7 @@ function _start_installation {
 
   ### Installation Prep completed
   ###
-  ### Start pre installation tasks
+  ### Being Pre-Installation
 
   write_header "Step 4: Pre-Installation"
 
@@ -517,6 +522,10 @@ function _start_installation {
   if [[ $CYBERARKSSHD == "Integrated" ]] ; then
     preinstall_infra
   fi
+  
+  ### Pre-Installation Completed
+  ###
+  ### Begin Installation
 
   write_header "Step 5: Installation"
 
@@ -527,6 +536,10 @@ function _start_installation {
   
   # Check Service Status
   #verify_services
+
+  ### Installation Complete
+  ### 
+  ### Begin Installation Cleanup
 
   write_header "Step 5: Installation cleanup"
 
