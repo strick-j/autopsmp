@@ -7,10 +7,10 @@ main_script="${bats_src}/main.sh"
 static_version="$(grep AUTOPSMP_VERSION "$main_script" | head -1 | cut -d'"' -f 2)"
 
 @test "main.sh must be executable" {
-    assert_file_executable "$main_script"
+  assert_file_executable "$main_script"
 }
 
 @test "run 'main.sh --version'" {
-    run $main_script --version
-    assert_equal "$output" "$static_version" 
+  run main.sh --version
+  assert_equal "$output" "$static_version" 
 }

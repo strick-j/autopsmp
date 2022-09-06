@@ -19,8 +19,8 @@ setup() {
   mkdir $tmp_dir
   mkdir $tmp_var_dir
 
-  export INSTALLFILES="$tmp_dir"
-  export TMPDIR="$tmp_var_dir"
+  export CYBR_DIR="$tmp_dir"
+  export VAR_TMP_D="$tmp_var_dir"
 }
 
 @test "create_vault_ini() - success" {

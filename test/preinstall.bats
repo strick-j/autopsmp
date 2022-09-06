@@ -6,7 +6,7 @@ load 'libs/bats-support/load'
 load 'libs/bats-file/load'
 
 MAINSCRIPT="$BATS_TEST_DIRNAME/../src/main.sh"
-source "$MAINSCRIPT"
+source $MAINSCRIPT
 
 @test "preinstall_infra() - rpm not found" {
   run preinstall_infra 
@@ -14,13 +14,13 @@ source "$MAINSCRIPT"
 }
 
 @test "preinstall_infra() - rpm not found - naming error" {
-  tmp_dir="$BATS_TEST_DIRNAME/tmp/tmp_dir"
+  tmp_dir="${TMP}/tmp_dir"
   tmp_infra_dir="$BATS_TEST_DIRNAME/tmp/tmp_dir/IntegratedMode"
   tmp_file="CARKsmp-infra-12.06.0.26.x86_64.rpm"
   mkdir $tmp_dir
   mkdir $tmp_infra_dir
   touch $tmp_infra_dir/$tmp_file
-  export INSTALLFILES="$tmp_dir"
+  export CYBR_DIR=$tmp_dir
   run preinstall_infra
   assert_failure
 }
@@ -32,7 +32,7 @@ source "$MAINSCRIPT"
   mkdir $tmp_dir
   mkdir $tmp_infra_dir
   touch $tmp_infra_dir/$tmp_file
-  export INSTALLFILES="$tmp_dir"
+  export CYBR_DIR="$tmp_dir"
   export DRYRUN=1
   run preinstall_infra
   assert_success

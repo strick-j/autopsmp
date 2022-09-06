@@ -45,9 +45,9 @@ source "$MAINSCRIPT"
 }
 
 @test "dir_prompt() success" {
-  temp_dir="$BATS_TEST_DIRNAME/tmp/temp_dir"
+  temp_dir=$BATS_TEST_DIRNAME/tmp/temp_dir
   mkdir $temp_dir
-  run dir_prompt <<< $temp_dir
+  run dir_prompt <<< $BATS_TEST_DIRNAME/tmp/temp_dir
   assert_output --partial 'proceeding'
 }
 

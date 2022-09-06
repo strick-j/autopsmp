@@ -6,7 +6,7 @@ set -e
 AUTOPSMP_VERSION="0.0.1-alpha"
 
 # Logging
-VAR_TMP_D=/var/tmp
+VAR_TMP_D="/var/tmp"
 VAR_INSTALL_LOG_F=$VAR_TMP_D/autopsmp_install.log
 SHOULD_SHOW_LOGS=1
 DEBUG=0
@@ -15,7 +15,6 @@ DEBUG=0
 ENABLEADBRIDGE=0
 CYBERARKSSHD="Integrated"
 DRYRUN=0
-TMPDIR="/var/tmp"
 
 # Generic output functions (logging, terminal, etc..)
 function write_log() {
@@ -121,12 +120,12 @@ function enable_ad_bridge() {
 
 function dir_prompt() {
   # Prompt for directory info of installation folder, verify directory exists
+  local cybr_dir
   write_to_terminal "Requesting installation directory information:"
-  local install_dir
-  read -rp 'Please enter the full path for the folder containing installation media [e.g. /tmp/psmp]: ' install_dir
-  if [[ -d $install_dir ]]; then
+  read -rp 'Please enter the full path for the folder containing installation media [e.g. /tmp/psmp]: ' cybr_dir
+  if [[ -d $cybr_dir ]]; then
     # Check for required installation files in directory
-    if [[ ! -f $install_dir/vault.ini ]] || [[ ! -f $install_dir/psmpparms.samplei ]] ; then 
+    if [[ ! -f $cybr_dir/vault.ini ]] || [[ ! -f $cybr_dir/psmpparms.samplei ]] ; then 
       write_to_terminal "Required files not found within directory, would you like to try again?"
       select yn in "Yes" "No"; do
         case $yn in
@@ -135,8 +134,8 @@ function dir_prompt() {
         esac
       done
     fi
-    write_to_terminal "Directory information confirmed as: $install_dir, proceeding..."
-    export CYBR_DIR="$install_dir"
+    write_to_terminal "Directory information confirmed as: $cybr_dir, proceeding..."
+    export CYBR_DIR=$cybr_dir
     printf "\n"
   else
     # Directory not present, allow user to re-enter path or exit
@@ -151,14 +150,16 @@ function dir_prompt() {
 }
 
 function address_prompt() {
+  local cybr_address
   write_to_terminal "Requesting Vault IP for installation:"
-  read -erp 'Please enter Vault IP Address: ' CYBERARKADDRESS
+  read -erp 'Please enter Vault IP Address: ' cybr_address
   local res=0
   # Check Address  validity
-  res=$(valid_ip "$CYBERARKADDRESS")
+  res=$(valid_ip "$cybr_address")
   if [[ $res -eq 0 ]] ; then
     write_to_terminal "Valid IP Address provided, proceeding..."
-    confirm_input "$CYBERARKADDRESS" "Address"
+    confirm_input "$cybr_address" "Address"
+    export CYBR_ADDRESS=$cybr_address
   else
     write_to_terminal "Invalid address provided, would you like to try again?"
     select yn in "Yes" "No"; do
@@ -172,14 +173,16 @@ function address_prompt() {
 }
 
 function username_prompt() {
+  local cybr_username
   write_to_terminal "Requesting Vault Username for installation:"
-  read -erp 'Please enter Vault Username: ' CYBERARKUSERNAME
+  read -erp 'Please enter Vault Username: ' cybr_username
   local res=0
   # Check Username validity
-  res=$(valid_username "$CYBERARKUSERNAME")
+  res=$(valid_username "$cybr_username")
   if [[ $res -eq 0 ]] ; then
     write_to_terminal "Valid username provided, proceeding..."
-    confirm_input "$CYBERARKUSERNAME" "Username"
+    confirm_input "$cybr_username" "Username"
+    export CYBR_USERNAME=$cybr_username
   else
     case $res in
       2) write_to_terminal "Invalid Username: Username is too long.";;
@@ -199,6 +202,8 @@ function username_prompt() {
 }
 
 function pass_prompt() {
+  local passvar1
+  local passvar2
   # Prompt for Vault Password info
   write_to_terminal "Requesting Vault Password. Password must be entered twice and will be hidden:"
   read -serp 'Please enter Vault Password: ' passvar1
@@ -207,17 +212,23 @@ function pass_prompt() {
   printf "\n"
   # Test if passwords match
   if [[ "$passvar1" == "$passvar2" ]]; then
-    write_to_terminal "Valid password provided, proceeding..."
-    export CYBR_PASSWORD="$passvar1"
-    CYBERARKPASSWORD="$passvar1"
-    # Unset password variables
-    unset passvar2
-    unset passvar1
-    printf "\n"
+    # Check password validity
+    res=$(valid_password "$passvar1")
+    if [[ $res -eq 0 ]] ; then
+      write_to_terminal "Valid password provided, proceeding..."
+      export CYBR_PASSWORD=$passvar1
+      # Unset password variables
+      unset passvar1 
+      unset passvar2
+    else
+      write_to_terminal "Password is not valid. Please try again."
+      pass_prompt
+    fi
   else
     write_to_terminal "Passwords do not match. Please try again."
     pass_prompt
   fi
+  printf "\n"
 }
 
 function mode_prompt() {
@@ -228,17 +239,14 @@ function mode_prompt() {
       Integrated ) 
         write_to_terminal "InstallCyberArkSSHD=Integrated, proceeding..."
         export CYBR_MODE="Integrated"
-        CYBERARKSSHD="Integrated"
         break;;
       Yes ) 
         write_to_terminal "InstallCyberArkSSHD=Yes, proceeding..."
         export CYBR_MODE="Yes"
-        CYBERARKSSHD="Yes"
         break;;
       No ) 
         write_to_terminal "InstallCyberArkSSHD=No, some limitations apply, proceeding..."
         export CYBR_MODE="No"
-        CYBERARKSSHD="No"
         break;;
       *)
         write_to_terminal "Invalid option selected..."
@@ -252,7 +260,8 @@ function mode_prompt() {
 function check_env_var() {
   write_to_terminal "Silent installation detected, checking Environment Varaibles..."
   
-  env_vars=("CYBR_USERNAME" "CYBR_PASSWORD" "CYBR_ADDRESS" "CYBR_DIR" "CYBR_MODE" "CYBR_BRIDGE" "CYBR_HARDENING")
+  #TODO: add haredening
+  env_vars=("CYBR_USERNAME" "CYBR_PASSWORD" "CYBR_ADDRESS" "CYBR_DIR" "CYBR_MODE" "CYBR_BRIDGE")
   for var in "${env_vars[@]}" ; do
     write_to_terminal "Checking Environmnet Variable ${var}"
     if [[ -z ${var} ]] ; then
@@ -263,48 +272,42 @@ function check_env_var() {
     fi
   done
 
-  CYBERARKUSERNAME=${CYBR_USERNAME}
-  CYBERARKPASSWORD=${CYBR_PASSWORD}
-  CYBERARKADDRESS=${CYBR_ADDRESS}
-  CYBERARKSSHD=${CYBR_MODE}
-  ENABLEADBRIDGE=${CYBR_BRIDGE}
-  
   write_to_terminal "All Environment Variables found, proceeding..."
   printf "\n"
 }
 
 function create_vault_ini() {
   # Modifing vault.ini file with information provided above
-  write_to_terminal "Updating vault.ini file with Vault IP: $CYBERARKADDRESS"
+  write_to_terminal "Updating vault.ini file with Vault IP: ${CYBR_ADDRESS}"
   # Verify vault.ini file is present, exit if not
-  if [[ -f $INSTALLFILES/vault.ini ]]; then
+  if [[ -f ${CYBR_DIR}/vault.ini ]]; then
     write_to_terminal "Found vault.ini, making backup and proceeding..."
     # Modify IP address in vault.ini file
-    cp "$INSTALLFILES"/vault.ini "$INSTALLFILES"/vault.ini.bak
-    sed -i "s+ADDRESS=.*+ADDRESS=$CYBERARKADDRESS+g" "$INSTALLFILES"/vault.ini
+    cp "${CYBR_DIR}"/vault.ini "${CYBR_DIR}"/vault.ini.bak
+    sed -i "s+ADDRESS=.*+ADDRESS=${CYBR_ADDRESS}+g" "${CYBR_DIR}"/vault.ini
     write_to_terminal "Completed vault.ini file modifications, proceeding..."
-    printf "\n"
   else
     # Error - File not found
     write_to_terminal "vault.ini file not found, verify needed files have been copied over. Exiting now..."
     exit 1
   fi
+  printf "\n"
 }
 
 function create_credfile() {
+  local verifycredfile
   # Create credential file with username and password provided above
   print_info "Creating Credential File for authorization to Vault"
   # Verify CreateCredFile is present, exit if not
-  if [[ -f $INSTALLFILES/CreateCredFile ]];then
+  if [[ -f ${CYBR_DIR}/CreateCredFile ]];then
     # Modify permissions and create credential file
-    chmod 755 "$INSTALLFILES"/CreateCredFile
-    "$INSTALLFILES"/CreateCredFile "$INSTALLFILES"/user.cred Password -username "$CYBERARKUSERNAME" -password "$CYBERARKPASSWORD" -EntropyFile >> autopsmp.log 2>&1
+    chmod 755 "${CYBR_DIR}"/CreateCredFile
+    "${CYBR_DIR}"/CreateCredFile "${CYBR_DIR}"/user.cred Password -username "${CYBR_USERNAME}" -password "${CYBR_USERNAME}" -EntropyFile >> autopsmp.log 2>&1
     # Unset password variable
-    unset CYBERARKPASSWORD 
-    vercredvar=$(tail -1 autopsmp.log)
-    if [[ "$vercredvar" == "Command ended successfully" ]]; then
+    #unset CYBERARKPASSWORD 
+    verifycredfile=$(tail -1 autopsmp.log)
+    if [[ "$verifycredfile" == "Command ended successfully" ]]; then
       write_to_terminal "Credential file created successfully, proceeding..."
-      printf "\n"
     else
       write_to_terminal "Credential file not created sueccessfully. Exiting now..."
       exit 1
@@ -313,44 +316,45 @@ function create_credfile() {
     write_to_terminal "CreateCredFile file not found, verify needed files have been copied over. Exiting now..."
     exit 1
   fi
+  printf "\n"
 }
 
 function create_psmpparms() {
   # Update psmpparms file with userprovided information
   write_to_terminal "Updating psmpparms file with user provided information"
   # Verify psmpparms.sample is present, exit if not
-  if [[ -f $INSTALLFILES/psmpparms.sample ]]; then
+  if [[ -f ${CYBR_DIR}/psmpparms.sample ]]; then
     # Create psmpparms file and modify variables
-    cp "$INSTALLFILES"/psmpparms.sample "$TMPDIR"/psmpparms
-    sed -i "s+InstallationFolder.*+InstallationFolder=$INSTALLFILES+g" "$TMPDIR"/psmpparms
-    sed -i "s+AcceptCyberArkEULA=No+AcceptCyberArkEULA=Yes+g" /var/tmp/psmpparms
-    sed -i "s+InstallCyberArkSSHD=Integrated+InstallCyberArkSSHD=$CYBERARKSSHD+g" "$TMPDIR"/psmpparms
-    if [[ $ENABLEADBRIDGE -eq 0 ]] ; then
-      sed -i "s+#EnableADBridge=No+EnableADBridge=Yes+g" "$TMPDIR"/psmparms
+    cp "${CYBR_DIR}"/psmpparms.sample "$VAR_TMP_D"/psmpparms
+    sed -i "s+InstallationFolder.*+InstallationFolder=${CYBR_DIR}+g" "$VAR_TMP_D"/psmpparms
+    sed -i "s+AcceptCyberArkEULA=No+AcceptCyberArkEULA=Yes+g" "$VAR_TMP_D"/psmpparms
+    sed -i "s+InstallCyberArkSSHD=Integrated+InstallCyberArkSSHD=${CYBR_DIR}+g" "$VAR_TMP_D"/psmpparms
+    if [[ $CYBR_BRIDGE -eq 0 ]] ; then
+      sed -i "s+#EnableADBridge=No+EnableADBridge=Yes+g" "$VAR_TMP_D"/psmpparms
     fi
-    write_to_terminal "psmpparms file modified and copied to $TMPDIR, proceeding..."
-    printf "\n"
+    write_to_terminal "psmpparms file modified and copied to $VAR_TMP_D, proceeding..."
   else
     # Error - File not found
     write_to_terminal "psmpparms.sample file not found, verify needed files have been copied over. Exiting now..."
     exit 1
   fi
+  printf "\n"
 }
 
 function preinstall_gpgkey() {
   write_to_terminal "Verifying rpm GPG Key is present"
-  if [[ -f $INSTALLFILES/RPM-GPG-KEY-CyberArk ]]; then
+  if [[ -f ${CYBR_DIR}/RPM-GPG-KEY-CyberArk ]]; then
     # Import GPG Key
     write_to_terminal "GPG Key present - Importing..."
     #TODO: Catch import error
     rpm --import "INSTALLFILES"/RPM-GPG-KEY-CyberArk
     write_to_terminal "GPG Key imported, proceeding..."
-    printf "\n"
   else
     # Error - File not found
     write_to_terminal "RPM GPG Key not found, verify needed files have been copied over. Exiting now..."
     exit 1
   fi  
+  printf "\n"
 }
 
 function preinstall_libssh() {
@@ -358,10 +362,10 @@ function preinstall_libssh() {
   if rpm -qa libssh 2>&1 > /dev/null; then
     write_to_terminal "libssh is already installed, skipping..."
   else
-    prereqfolder=$INSTALLFILES
+    local prereqfolder=${CYBR_DIR}
     prereqfolder+="/Pre-Requisites"
-    libsshrpm=$(find "$prereqfolder" -name '*libssh*')
-    if [[ -f $prereqfolder/$libsshrpm ]]; then
+    local libsshrpm=$(find "$prereqfolder" -name '*libssh*')
+    if [[ -f $libsshrpm ]]; then
       # Install libssh
       write_to_terminal "libssh present - Installing $libsshrpm"
       rpm -ih "$libsshrpm"
@@ -372,13 +376,14 @@ function preinstall_libssh() {
       exit 1
     fi
   fi
+  printf "\n"
 }
 
 function preinstall_infra() {
   write_to_terminal "CyberArkSSHD set to integrated mode. CARKpsmp-infra will be installed."
-  infrafolder=$INSTALLFILES
+  local infrafolder=${CYBR_DIR}
   infrafolder+="/IntegratedMode"
-  infrarpm=$(find "$infrafolder" -name '*CARKpsmp-infra*')
+  local infrarpm=$(find "$infrafolder" -name '*CARKpsmp-infra*')
   if [[ -f $infrarpm ]]; then
     # Install CARKpsmp-infra
     print_info "CARKpsmp-infra present - Installing $infrarpm"
@@ -389,18 +394,18 @@ function preinstall_infra() {
     else
       write_to_terminal "CARKpsmp-infra rpm found: $infrarpm"
       write_to_terminal "Skipping installation for dryrun, proceeding..."
-      printf "\n"
     fi
   else
     # Error - File not found
     write_to_terminal "CARKpsmp-infra rpm not found and is required for integrated mode, verify needed Pre-Requisites have been copied over. Exiting now..."
     exit 1
   fi
+  printf "\n"
 }
 
 function install_psmp() {
   write_to_terminal "Verifying PSMP rpm installer is present"
-  psmprpm=$(find "$INSTALLFILES" -name '*CARKpsmp*')
+  local psmprpm=$(find "${CYBR_DIR}" -name '*CARKpsmp*')
   if [[ -f $psmprpm ]]; then
     # Install CyberArk RPM
     write_to_terminal "PSMP rpm installer present..."
@@ -412,22 +417,22 @@ function install_psmp() {
     else
       write_to_terminal "CARKpsmp rpm found: $psmprpm"
       write_to_terminal "Skipping installation for dryrun, proceeding..."
-      printf "\n"
     fi
   else
     # Error - File not found
     write_to_terminal "PSMP rpm install file not found, verify needed files have been copied over. Exiting now..."
     exit 1
   fi
+  printf "\n"
 }
 
 function clean_install() {
   # Cleaning up system files used during install
   write_to_terminal "Removing user.cred, vault.ini, and CreateCredFile Utility"
-  rm -f "$INSTALLFILES"/user.cred
-  rm -f "$INSTALLFILES"/vault.ini
-  rm -f "$INSTALLFILES"/CreateCredFile
-  if [[ -f $INSTALLFILES/user.cred ]]||[[ -f $INSTALLFILES/vault.ini ]]||[[ -f $INSTALLFILES/CreateCredFile ]]; then
+  rm -f "${CYBR_DIR}"/user.cred
+  rm -f "${CYBR_DIR}"/vault.ini
+  rm -f "${CYBR_DIR}"/CreateCredFile
+  if [[ -f ${CYBR_DIR}/user.cred ]]||[[ -f ${CYBR_DIR}/vault.ini ]]||[[ -f ${CYBR_DIR}/CreateCredFile ]]; then
     write_to_terminal "Files could not be deleted, please manually remove..."
     exit 1
   else
