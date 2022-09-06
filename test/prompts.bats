@@ -160,9 +160,10 @@ $valid_ip"
   assert_output --partial 'proceeding'
 }
 
-@test "user_prompt() invalid username" {
+@test "user_prompt() invalid username, exit" {
   uservar="samplelongusername01samplelongusername02samplelongusername03samplelongusername04samplelongusername05samplelongusername06samplelongusername07"
-  run username_prompt <<< $uservar
+  run username_prompt <<< "$uservar
+2"
   assert_failure
 }
 
