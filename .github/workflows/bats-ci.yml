@@ -1,22 +1,16 @@
 name: CI
-on:
-  push:
-    branches: [ "bats" ]
-  pull_request:
-    branches: [ "bats" ]
+on: push
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Setup BATS
-        uses: mig4/setup-bats@v1
-        with:
-          bats-version: 1.2.1
+      - name: Install dependencies
+        run: npm install -g bats
 
       - uses: actions/checkout@v3
 
       - name: Test
-        run: bats test/install_prep.bats
+        run: bats -v test/install_prep.bats
 
