@@ -4,8 +4,8 @@ FIXTURES_DIR="$BAT_TEST_DIRNAME/fixtures"
 export TMP="$BATS_TEST_DIRNAME/tmp"
 
 setup() {
-  load 'libs/bats-support/load'
   load 'libs/bats-assert/load'
+  load 'libs/bats-support/load'
   load 'libs/bats-file/load'
   DIR="$( cd "$( dirname "$BATS_TEST_FILENAME" )" >/dev/null 2>&1 && pwd )"
   PATH="$DIR/../src:$PATH"
