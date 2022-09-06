@@ -174,7 +174,7 @@ dir_prompt(){
   print_head "Step 2: Collecting Info"
   # Prompt for directory info of installation folder, verify directory exists
   print_info "Requesting installation directory information"
-  read -p 'Please enter the full path for the installation folder directory [e.g. /opt/psmp]: ' foldervar
+  read -p 'Please enter the full path for the installation media [e.g. /tmp/psmp]: ' foldervar
   if [[ -d $foldervar ]]; then
     # Directory present, subfolders have not been verified
     print_success "Directory information confirmed as: $foldervar"
