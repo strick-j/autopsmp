@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+FIXTURES_DIR="$BAT_TEST_DIRNAME/fixtures"
 export TMP="$BATS_TEST_DIRNAME/tmp"
 
 setup() {
