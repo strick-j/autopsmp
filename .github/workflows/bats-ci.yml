@@ -10,7 +10,9 @@ jobs:
         run: npm install -g bats
 
       - uses: actions/checkout@v3
+        with:
+          path: bats
 
       - name: Test
-        run: bats ./test/install_prep.bats
+        run: bats test/install_prep.bats
 
