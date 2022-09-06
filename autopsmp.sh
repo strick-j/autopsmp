@@ -1,4 +1,4 @@
- #!/bin/bash
+#!/bin/bash
 
 function main(){
   system_prep
@@ -149,7 +149,7 @@ gatherFacts(){
   if [ -f /etc/os-release ] ; then 
     OS=$(cat /etc/os-release | awk '{ FS = "="} /^ID=/ {print $2}' | sed 's/\"//g');
     VERSION=$(cat /etc/os-release | awk '{ FS = "="} /^VERSION_ID=/ {print $2}' | sed 's/\"//g');
-    priint_info "Detected OS: $OS";
+    print_info "Detected OS: $OS";
     print_info "Detected OS Version: $VERSION";
   fi
 }
