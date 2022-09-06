@@ -12,5 +12,5 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Test
-        run: bats -v test/install_prep.bats
+        run: bats ./test/install_prep.bats
 
