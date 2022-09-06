@@ -123,7 +123,7 @@ function dir_prompt() {
   # Prompt for directory info of installation folder, verify directory exists
   write_to_terminal "Requesting installation directory information:"
   local install_dir
-  read -rp 'Please enter the full path for the installation folder directory [e.g. /opt/psmp]: ' install_dir
+  read -rp 'Please enter the full path for the folder containing installation media [e.g. /tmp/psmp]: ' install_dir
   if [[ -d $install_dir ]]; then
     # Check for required installation files in directory
     if [[ ! -f $install_dir/vault.ini ]] || [[ ! -f $install_dir/psmpparms.samplei ]] ; then 
