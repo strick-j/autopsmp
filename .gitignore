@@ -1,5 +1,4 @@
 
 
 # Ignore lib directory under test
-test/libs/
 test/bats/
