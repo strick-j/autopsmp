@@ -20,5 +20,8 @@ jobs:
         with:
           submodules: recursive
       
-      - name: Run tests
+      - name: Run main tests
         run: bats test/main.bats
+
+      - name: Run prompts tests
+        run: bats test/prompts.bats
