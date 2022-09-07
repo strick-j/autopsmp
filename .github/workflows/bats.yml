@@ -13,7 +13,7 @@ jobs:
       - name: Setup BATS
         uses: mig4/setup-bats@v1
         with:
-          bats-version: 1.5.0
+          bats-version: 1.7.0
       
       - name: Checkout code
         uses: actions/checkout@v3
