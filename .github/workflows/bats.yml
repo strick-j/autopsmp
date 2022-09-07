@@ -25,6 +25,11 @@ jobs:
       
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Set ownership
+        run: |
+          # this is to fix GIT not liking owner of the checkout dir
+          chown -R $(id -u):$(id -g) $PWD 
       
       - name: Checkout submodules
         run: git submodule update --init --recursive
