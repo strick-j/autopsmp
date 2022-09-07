@@ -19,6 +19,9 @@ jobs:
         uses: mig4/setup-bats@v1
         with:
           bats-version: 1.7.0
+
+      - name: Install git
+        run: apk add git
       
       - name: Checkout code
         uses: actions/checkout@v2
