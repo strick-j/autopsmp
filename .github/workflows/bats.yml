@@ -23,5 +23,17 @@ jobs:
       - name: Run main tests
         run: bats test/main.bats
 
+      - name: Run output tests
+        run: bats test/output.bats
+
+      - name: Run validator tests
+        run: bats test/validators.bats
+
       - name: Run prompts tests
         run: bats test/prompts.bats
+
+      - name: Run install_prep tests
+        run: bats test/install_prep.bats
+
+      - name: Run cleanup tests
+        run: bats test/cleanup.bats
