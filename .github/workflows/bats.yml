@@ -10,10 +10,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install dependencies
-        run: npm install -g bats
+      - name: Setup BATS
+        uses: mig4/setup-bats@v1
+        with:
+          bats-version: 1.5.0
+      
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - uses: actions/checkout@v3
-
-      - name: Test
-        run: bats test/main.bats
+      - name: Run tests
+        run: bats/test.main.bats
