@@ -18,11 +18,11 @@ source "$MAINSCRIPT"
   tmp_file="CARKpsmp-12.06.0.26.x86_64.rpm"
   mkdir $tmp_dir
   touch $tmp_dir/$tmp_file
-  export INSTALLFILES="$tmp_dir"
+  export CYBR_DIR="$tmp_dir"
   function rpm() { echo "Install successful"; }
   export -f rpm
   run install_psmp
-  assert_line --index 3 "PSMP install complete, proceeding..."
+  assert_line --index 4 "PSMP install complete, proceeding..."
 }
 
 @test "install_psmp() - rpm found - dryrun - no install" {
@@ -30,8 +30,8 @@ source "$MAINSCRIPT"
   tmp_file="CARKpsmp-12.06.0.26.x86_64.rpm"
   mkdir $tmp_dir
   touch $tmp_dir/$tmp_file
-  export INSTALLFILES="$tmp_dir"
+  export CYBR_DIR="$tmp_dir"
   export DRYRUN=1
   run install_psmp
-  assert_line --index 2 "Skipping installation for dryrun, proceeding..."
+  assert_line --index 3 "Skipping installation for dryrun, proceeding..."
 }

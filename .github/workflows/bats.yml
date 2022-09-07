@@ -35,5 +35,11 @@ jobs:
       - name: Run install_prep tests
         run: bats test/install_prep.bats
 
+      - name: Run preinstall tests
+        run: bats test/preinstall.bats
+      
+      - name: Run install tests
+        run: bats test/install.bats
+
       - name: Run cleanup tests
         run: bats test/cleanup.bats
