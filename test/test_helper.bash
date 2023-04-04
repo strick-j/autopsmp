@@ -38,3 +38,7 @@ AcceptCyberArkEULA=No
 #EnableADBridge=Yes
 EOF
 }
+
+function helper_removeuser() {
+  userdel proxymng >/dev/nul 2>&1
+}

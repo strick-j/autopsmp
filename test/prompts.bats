@@ -209,13 +209,21 @@ $pass1"
 }
 
 @test "check_maintenance_user() denies then accepts prompt to create maintenance user" {
+  helper_removeuser
   run check_maintenance_user <<< '21'
   assert_success
   assert_output --partial 'Creating proxymng user and setting permissions'
 }
 
 @test "check_maintenance_user() user does not create maintenance user" {
+  helper_removeuser
   run check_maintenance_user <<< '22'
   assert_success
   assert_output --partial 'Manually create before rebooting'
+}
+
+@test "check_maintenance_user() user already exists" {
+  run check_maintenance_user
+  assert_success
+  assert_output --partial 'proxymng exists. Ensure password is set prior to reboot. Proceeding...'
 }
