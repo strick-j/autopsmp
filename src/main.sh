@@ -15,7 +15,6 @@ DEBUG=0
 ENABLEADBRIDGE=0
 CYBERARKSSHD="Integrated"
 DRYRUN=0
-SUSE=0
 
 # Generic output functions (logging, terminal, etc..)
 function write_log() {
@@ -125,8 +124,8 @@ function gather_facts() {
   if [[ -f /etc/os-release ]] ; then
     local os
     local osversion
-    os=$(awk '{ FS = "="} /^ID=/ {print $2}' | sed 's/\"//g' /etc/os-release)
-    osversion=$(awk '{ FS = "="} /^VERSION_ID=/ {print $2}' | sed 's/\"//g' /etc/os-release)
+    os=$(awk '{ FS = "="} /^ID=/ {print $2}' /etc/os-release | sed 's/\"//g' )
+    osversion=$(awk '{ FS = "="} /^VERSION_ID=/ {print $2}' /etc/os-release | sed 's/\"//g' )
     export CYBR_OS="$os"
     export CYBR_OSVERSION="$osversion"
     write_to_terminal "Detected OS: ${CYBR_OS}"
@@ -169,7 +168,7 @@ function dir_prompt() {
   read -rp 'Please enter the full path for the folder containing installation media [e.g. /tmp/psmp]: ' cybr_dir
   if [[ -d $cybr_dir ]]; then
     # Check for required installation files in directory
-    if [[ ! -f $cybr_dir/vault.ini ]] || [[ ! -f $cybr_dir/psmpparms.samplei ]] ; then 
+    if [[ ! -f $cybr_dir/vault.ini ]] || [[ ! -f $cybr_dir/psmpparms.sample ]] ; then 
       write_to_terminal "Required files not found within directory, would you like to try again?"
       select yn in "Yes" "No"; do
         case $yn in
@@ -470,6 +469,44 @@ function install_psmp() {
   printf "\n"
 }
 
+function verify_psmp() {
+  # Add checks for rpm
+  write_to_terminal "Verifying psmp rpm is installed."
+  local installedrpm=$(rpm -q CARKpsmp)
+  if [[ ${installedrpm} ]] ; then
+    write_to_terminal "${installedrpm} found, proceeding..."
+  else 
+    write_to_terminal "PSMP rpm not installed, review logs for errors. Exiting..."
+    exit 1
+  fi
+
+  # Add checks for service(s) status
+  if [[ $CYBR_BRIDGE -eq 1 ]] ; then 
+    local services_array=("psmp" "psmpadb")
+  else
+    local services_array=("psmp")
+  fi
+
+  for service in ${services_array[@]}
+  do
+    service="$service"
+    write_to_terminal "Checking status of ${service}"
+    if [[ $CYBR_OS = "rhel" ]] && [[ $CYBR_OSVERSION = 8* ]]; then 
+      if [[ $(systemctl status psmpsrv-${service}server | awk '/Active:/ {print $2}') = "active" ]] ; then
+        write_to_terminal "${service} service is active, proceeding..."
+      else
+        write_to_terminal "${service} service is not active, review logs for errors. Proceeding..."
+      fi
+    else
+      if [[ $(service psmpsrv psmp ${service} | awk '/Active:/ {print $2}') = "active" ]] ; then
+        write_to_terminal "${service} service is active, proceeding..."
+      else
+        write_to_terminal "${service} service is not active, review logs for errors. Proceeding..."
+      fi
+    fi
+  done
+}
+
 function clean_install() {
   # Cleaning up system files used during install
   write_to_terminal "Removing user.cred, vault.ini, and CreateCredFile Utility"
@@ -706,7 +743,7 @@ function _start_interactive_install() {
   write_header "Step 5: Installation Verification"
   
   # Check Service Status
-  #verify_services
+  verify_psmp
 
   ### Installation Complete
   ### 
