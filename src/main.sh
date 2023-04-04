@@ -3,7 +3,7 @@
 set -e
 
 # Version
-AUTOPSMP_VERSION="0.0.1-alpha"
+AUTOPSMP_VERSION="0.0.2-alpha"
 
 # Logging
 VAR_TMP_D="/var/tmp"
@@ -15,6 +15,7 @@ DEBUG=0
 ENABLEADBRIDGE=0
 CYBERARKSSHD="Integrated"
 DRYRUN=0
+SUSE=0
 
 # Generic output functions (logging, terminal, etc..)
 function write_log() {
@@ -35,6 +36,13 @@ function write_header() {
   echo "$1"
   echo "======================================================================="
   echo ""
+}
+
+function check_uid() {
+  if [[ $(id -u) != "0" ]] ; then
+    write_to_terminal "This script must be run as root. Exiting..."
+    exit 1
+  fi
 }
 
 # Functional checks
@@ -65,6 +73,46 @@ function verify_se_linux() {
       No ) write_to_terminal "Proceeding with SELinux disabled..."; break;;
     esac
   done
+}
+
+function disable_nscd() {
+  # Check status of nscd service and socket
+  nscd_array=("service" "socket")
+  for nscd in ${nscd_array[@]}
+  do
+    nscd="$nscd"
+    # Check if service is active, stop if so
+    if [[ $(systemctl status nscd.$nscd | awk '/Active:/ {print $2}') = "active" ]] ; then
+      write_to_terminal "nscd.${nscd} is active. Stopping nsdc.${nscd}"
+      systemctl stop nscd.${nscd}
+      if [[ $(systemctl status nscd.$nscd | awk '/Active:/ {print $2}') = "active" ]] ; then
+        write_to_terminal "Failed to stop nscd.${nscd} service. Please stop and remove manually. Exiting..."
+        exit 1
+      else
+        write_to_terminal "nscd.${nscd} successfully stopped. Proceeding..."
+      fi
+    else
+      write_to_terminal "nscd.${nscd} is not active. Proceeding..."
+    fi
+
+    if [[ $(systemctl status nscd.$nscd | awk '/Loaded:/ {print $2}') = "loaded" ]] ; then
+      write_to_terminal "nscd.${nscd} is loaded. Attempting to disable"
+      systemctl disable nscd.${nscd}
+      if [[ $(systemctl status nscd.$nscd | awk '/Loaded:/ {print $2}') = "loaded" ]] ; then
+        write_to_terminal "Failed to disable nscd.${nscd} service. Please disable manually. Exiting..."
+        exit 1
+      else
+        write_to_terminal "nscd.${nscd} successfully disabled Proceeding..."
+      fi
+    else
+      write_to_terminal "nscd.${nscd} is not loaded. Proceeding..."
+    fi
+  done   
+
+}
+
+function service_loaded() {
+
 }
 
 function gather_facts() {
@@ -441,6 +489,10 @@ function clean_install() {
   fi
 }
 
+function check_maintenance_user() {
+
+}
+
 function confirm_input() {
   local userinput=$1
   local inputfield=$2
@@ -517,8 +569,6 @@ function _start_silent_install() {
   # Validate environmnet variables
   # valid_ip $CYBERARKADDRESS
 
-
-
   # Install PSMP
 
 }
@@ -528,15 +578,18 @@ function _start_interactive_install() {
 
   write_header "Step 1: Validating installation requirements"
 
+  # Check to verify script is being run as root
+  check_uid
+
   # Check Operating System
   gather_facts
 
   # Check SELinux Status - CyberArk recommends enabling before install
   check_se_linux
-  
-  # Check for maintenance user  
-  #check_maintenance_user
 
+  # Disable NSCD - CyberArk recommends disabling to prevent unexpected behavior
+  disable_nscd
+  
   ### System validation completed
   ###
   ### Begin Gathering information from user
@@ -616,6 +669,9 @@ function _start_interactive_install() {
 
   # Clean up files created during install (credfile, vault.ini, etc...)
   clean_installation
+
+  # Check for maintenance user  
+  #check_maintenance_user
 }
 
 function _show_help {
