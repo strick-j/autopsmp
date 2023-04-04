@@ -486,7 +486,52 @@ function clean_install() {
 }
 
 function check_maintenance_user() {
+  # Verifying maintenance user exists
+  local username="proxymng"
+  write_to_terminal "Checking to see if maintenance user ${username} exists"
+  if id $username >/dev/null 2>&1) ; then
+    write_to_terminal "${username} exists. Ensure password is set prior to reboot. Proceeding..."
+  else
+    local done=0
+    while : ; do
+      write_to_terminal "Maintenance user ${username} does not exist, would you like to create ${username} user?"
+      select yn in "Yes" "No"; do
+        case $yn in
+          Yes ) create_user "$username"; done=1; break;;
+          No ) write_to_terminal "If you do not create a maintenance user you may not be able to log in after script completes via ssh. Create ${username} user?"
+            select yn in "Yes" "No"; do
+              case $yn in
+                Yes ) create_user "$username"; done=1; break;;
+                No ) write_to_terminal "Proceeding without creating maintenance user. Manually create before rebooting..."; done=1; break;;
+              esac
+            done
+            if [[ "$done" -ne 0 ]]; then
+              break
+            fi
+        esac
+        if [[ "$done" -ne 0 ]]; then
+          break
+        fi
+      done
+      if [[ "$done" -ne 0 ]]; then
+        break
+      fi
+    done
+  fi
+}
 
+function create_user() {
+  write_to_terminal "Creating ${1} user and setting permissions"
+  adduser -g wheel "$1" >/dev/null 2>&1
+ 
+  write_to_terminal "Verifying user ${1} was created"
+  if id "$1" >/dev/null 2>&1 ; then
+    write_to_terminal "User ${1} created and added to wheel group"
+    write_to_terminal "Please set password for \"$1\""
+    passwd "$1"
+  else
+    write_to_terminal "User could not be created, manually add user prior to reboot"
+  fi
 }
 
 function confirm_input() {
