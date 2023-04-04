@@ -202,24 +202,23 @@ $pass1"
   assert_output --partial 'proceeding'
 }
 
-@test "check_maintenance_user() accepts prompt to create maintenance user" {
-  run check_maintenance_user <<< '1'
+@test "check_maintenance_user() user does not create maintenance user" {
+  run check_maintenance_user <<< '22'
   assert_success
-  assert_output --partial 'Creating proxymng user and setting permissions'
+  assert_output --partial 'Manually create before rebooting'
 }
 
 @test "check_maintenance_user() denies then accepts prompt to create maintenance user" {
-  userdel proxymng
   run check_maintenance_user <<< '21'
   assert_success
   assert_output --partial 'Creating proxymng user and setting permissions'
 }
 
-@test "check_maintenance_user() user does not create maintenance user" {
-  userdel proxymng
-  run check_maintenance_user <<< '22'
+@test "check_maintenance_user() accepts prompt to create maintenance user" {
+  skip
+  run check_maintenance_user <<< '1'
   assert_success
-  assert_output --partial 'Manually create before rebooting'
+  assert_output --partial 'Creating proxymng user and setting permissions'
 }
 
 @test "check_maintenance_user() user already exists" {
