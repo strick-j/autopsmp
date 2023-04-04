@@ -522,11 +522,17 @@ function check_maintenance_user() {
 
 function create_user() {
   write_to_terminal "Creating ${1} user and setting permissions"
-  adduser -g wheel "$1" >/dev/null 2>&1
- 
+  if [ $(getent group admin) ]; then
+    write_to_terminal "Wheel group found, attempting to create and add user to wheel group"
+    adduser -g wheel "$1" >/dev/null 2>&1
+  else
+    write_to_terminal "Wheel group not found, creating user. Manually add to appropriate groups prior to rebooting..."
+    adduser "$1" >/dev/null 2>&1
+  fi
+  
   write_to_terminal "Verifying user ${1} was created"
   if id "$1" >/dev/null 2>&1 ; then
-    write_to_terminal "User ${1} created and added to wheel group"
+    write_to_terminal "User ${1} created"
     write_to_terminal "Please set password for \"$1\""
     passwd "$1"
   else
@@ -712,7 +718,7 @@ function _start_interactive_install() {
   clean_installation
 
   # Check for maintenance user  
-  #check_maintenance_user
+  check_maintenance_user
 }
 
 function _show_help {
