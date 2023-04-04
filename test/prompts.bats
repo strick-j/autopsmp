@@ -214,13 +214,6 @@ $pass1"
   assert_output --partial 'Creating proxymng user and setting permissions'
 }
 
-@test "check_maintenance_user() accepts prompt to create maintenance user" {
-  skip
-  run check_maintenance_user <<< '1'
-  assert_success
-  assert_output --partial 'Creating proxymng user and setting permissions'
-}
-
 @test "check_maintenance_user() user already exists" {
   run check_maintenance_user
   assert_success
