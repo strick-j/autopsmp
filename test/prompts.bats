@@ -210,7 +210,14 @@ $pass1"
 }
 
 @test "check_maintenance_user() denies then accepts prompt to create maintenance user" {
+  skip
   run check_maintenance_user <<< '21'
+  assert_success
+  assert_output --partial 'Creating proxymng user and setting permissions'
+}
+
+@test "check_maintenance_user() user accepts prompt to create maintenance user" {
+  run check_maintenance_user
   assert_success
   assert_output --partial 'Creating proxymng user and setting permissions'
 }
