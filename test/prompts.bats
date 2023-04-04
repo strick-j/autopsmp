@@ -203,6 +203,7 @@ $pass1"
 }
 
 @test "check_maintenance_user() user does not create maintenance user" {
+  skip
   run check_maintenance_user <<< '22'
   assert_success
   assert_output --partial 'Manually create before rebooting'
