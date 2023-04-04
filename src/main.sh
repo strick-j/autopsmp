@@ -489,7 +489,7 @@ function check_maintenance_user() {
   # Verifying maintenance user exists
   local username="proxymng"
   write_to_terminal "Checking to see if maintenance user ${username} exists"
-  if id $username >/dev/null 2>&1) ; then
+  if id $username >/dev/null 2>&1 ; then
     write_to_terminal "${username} exists. Ensure password is set prior to reboot. Proceeding..."
   else
     local done=0

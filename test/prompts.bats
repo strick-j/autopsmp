@@ -186,7 +186,7 @@ $pass2"
 
 @test "pass_prompt() password mismatch" {
   pass1="test1234"
-  pass2="1234test"
+  pass2="test1245"
   run pass_prompt <<< "$pass1
 $pass2"
   assert_output --partial 'Please try again.'
@@ -194,7 +194,7 @@ $pass2"
 
 @test "pass_prompt() password mismatch, retry, success" {
   pass1="test1234"
-  pass2="1234test"
+  pass2="test1245"
   run pass_prompt <<< "$pass1
 $pass2
 $pass1
