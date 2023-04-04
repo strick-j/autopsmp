@@ -95,10 +95,10 @@ function disable_nscd() {
       write_to_terminal "nscd.${nscd} is not active. Proceeding..."
     fi
 
-    if [[ $(systemctl status nscd.$nscd | awk '/Loaded:/ {print $2}') = "loaded" ]] ; then
+    if [[ $(systemctl is-enabled nscd.$nscd) = "enabled" ]] ; then
       write_to_terminal "nscd.${nscd} is loaded. Attempting to disable"
       systemctl disable nscd.${nscd}
-      if [[ $(systemctl status nscd.$nscd | awk '/Loaded:/ {print $2}') = "loaded" ]] ; then
+      if [[ $(systemctl is-enabled nscd.$nscd) = "enabled" ]] ; then
         write_to_terminal "Failed to disable nscd.${nscd} service. Please disable manually. Exiting..."
         exit 1
       else
@@ -108,10 +108,6 @@ function disable_nscd() {
       write_to_terminal "nscd.${nscd} is not loaded. Proceeding..."
     fi
   done   
-
-}
-
-function service_loaded() {
 
 }
 
