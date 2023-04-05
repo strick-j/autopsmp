@@ -299,6 +299,26 @@ function mode_prompt() {
   printf "\n"
 }
 
+function dir_prompt() {
+  # Prompt for location containing installation media
+  write_to_terminal "Requesting installation directory information"
+  read -p 'Please enter the full path for the installation media [e.g. /tmp/psmp]: ' directory
+  if [[ -d ${directory} ]]; then
+    # Directory present, subfolders have not been verified
+    write_to_terminal "Directory information confirmed as: $directory"
+    export CYBR_DIR=$directory
+  else
+    # Directory not present, allow user to re-enter path or exit
+    write_to_terminal "Directory not found, would you like to try again?"
+    select yn in "Yes" "No"; do
+      case $yn in
+        Yes ) dir_prompt; break;;
+        No ) write_to_terminal "Unable to find installation folder, exiting..."; exit 1;; 
+      esac
+    done
+  fi
+}
+
 # Check environment Variables for non-interactive install:
 function check_env_var() {
   write_to_terminal "Silent installation detected, checking Environment Varaibles..."
@@ -663,8 +683,14 @@ function _start_silent_install() {
   # Check for required environment variables
   check_env_var
 
+  # Disable NSCD - CyberArk recommends disabling to prevent unexpected behavior
+  disable_nscd
+
   # Validate environmnet variables
-  # valid_ip $CYBERARKADDRESS
+  write_log "Validating environment variables:"
+  [[ $(valid_ip ${CYBR_ADDRESS}) -eq 0 ]] && write_log "Valid IP found"
+  [[ $(valid_username ${CYBR_USERNAME}) -eq 0 ]] && write_log "Valid Username found"
+  [[ $(valid_pass ${CYBR_PASS}) - eq 0 ]] && write_log "Valid password found"
 
   # Install PSMP
 }
@@ -693,6 +719,9 @@ function _start_interactive_install() {
   write_header "Step 2: Collecting installation information."
   # Prompt for EULA Acceptance
   accept_eula
+
+  # Prompt for directory with installation media
+  dir_prompt
 
   # Prompt to Enable AD Bridging?
   enable_ad_bridge
