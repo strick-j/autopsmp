@@ -328,7 +328,7 @@ function check_env_var() {
   env_vars=("CYBR_USERNAME" "CYBR_PASSWORD" "CYBR_ADDRESS" "CYBR_DIR" "CYBR_MODE" "CYBR_BRIDGE")
   for var in "${env_vars[@]}" ; do
     write_log "Checking Environmnet Variable ${var}"
-    if [[ -z ${var} ]] ; then
+    if [[ -z ${!var+x} ]] ; then
       write_to_terminal "Environment Variable ${var} not set, exiting..."
       exit 1
     else
