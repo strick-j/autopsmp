@@ -690,7 +690,7 @@ function _start_silent_install() {
   write_log "Validating environment variables:"
   [[ $(valid_ip ${CYBR_ADDRESS}) -eq 0 ]] && write_log "Valid IP found"
   [[ $(valid_username ${CYBR_USERNAME}) -eq 0 ]] && write_log "Valid Username found"
-  [[ $(valid_pass ${CYBR_PASS}) - eq 0 ]] && write_log "Valid password found"
+  [[ $(valid_pass ${CYBR_PASS}) -eq 0 ]] && write_log "Valid password found"
 
   # Install PSMP
 }
