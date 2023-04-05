@@ -9,6 +9,7 @@ AUTOPSMP_VERSION="0.0.2-alpha"
 VAR_TMP_D="/var/tmp"
 VAR_INSTALL_LOG_F=$VAR_TMP_D/autopsmp_install.log
 SHOULD_SHOW_LOGS=1
+CYBR_DEBUG=0
 DEBUG=0
 
 # Generic Variables
