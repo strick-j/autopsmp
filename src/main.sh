@@ -18,15 +18,15 @@ DRYRUN=0
 
 # Generic output functions (logging, terminal, etc..)
 function write_log() {
-  if [ $SHOULD_SHOW_LOGS = "1" ] ; then
+  if [ $SHOULD_SHOW_LOGS -eq 1 ] ; then
     echo "$(date) | $1" >> $VAR_INSTALL_LOG_F
-    [[ ${CYBR_DEBUG} ]] && printf 'DEBUG: %s\n' "$1"
+    [ ${CYBR_DEBUG} -eq 1 ] && printf 'DEBUG: %s\n' "$1"
   fi
 }
 
 function write_to_terminal() {
-  echo "$(date) |  $1" >> $VAR_INSTALL_LOG_F
-  printf '%s\n' "$1"
+  echo "$(date) | $1" >> $VAR_INSTALL_LOG_F
+  printf 'INFO: %s\n' "$1"
 }
 
 function write_header() {
@@ -505,6 +505,7 @@ function verify_psmp() {
       fi
     fi
   done
+  printf "\n"
 }
 
 function clean_install() {
@@ -520,6 +521,7 @@ function clean_install() {
     write_to_terminal "PSMP installation and cleanup completed."
     exit 0
   fi
+  printf "\n"
 }
 
 function check_maintenance_user() {
@@ -555,6 +557,7 @@ function check_maintenance_user() {
       fi
     done
   fi
+  printf "\n"
 }
 
 function create_user() {
@@ -575,6 +578,7 @@ function create_user() {
   else
     write_to_terminal "User could not be created, manually add user prior to reboot"
   fi
+  printf "\n"
 }
 
 function confirm_input() {
@@ -605,6 +609,7 @@ function valid_ip() {
     [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 && ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
     stat=$?
   fi
+
   echo $stat
 }
 
@@ -647,6 +652,14 @@ function valid_pass() {
 }
 
 function _start_silent_install() {
+  # TODO: Build out SILENT INSTALL
+
+  # Check to verify script is being run as root
+  check_uid
+
+  # Check Operating System
+  gather_facts
+
   # Check for required environment variables
   check_env_var
 
@@ -654,7 +667,6 @@ function _start_silent_install() {
   # valid_ip $CYBERARKADDRESS
 
   # Install PSMP
-
 }
 
 function _start_interactive_install() {
@@ -740,7 +752,7 @@ function _start_interactive_install() {
   # Install PSMP
   install_psmp
 
-  write_header "Step 5: Installation Verification"
+  write_header "Step 6: Installation Verification"
   
   # Check Service Status
   verify_psmp
@@ -749,13 +761,18 @@ function _start_interactive_install() {
   ### 
   ### Begin Installation Cleanup
 
-  write_header "Step 5: Installation cleanup"
+  write_header "Step 7: Maintenance Access Verification"
+  
+  # Check for maintenance user  
+  check_maintenance_user
+  
+  write_header "Step 7: Installation Cleanup"
+  
+  # Remove files
+  # clean_dryrun
 
   # Clean up files created during install (credfile, vault.ini, etc...)
   clean_installation
-
-  # Check for maintenance user  
-  check_maintenance_user
 }
 
 function _show_help {
