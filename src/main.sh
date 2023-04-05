@@ -327,17 +327,28 @@ function check_env_var() {
   #TODO: add haredening
   env_vars=("CYBR_USERNAME" "CYBR_PASSWORD" "CYBR_ADDRESS" "CYBR_DIR" "CYBR_MODE" "CYBR_BRIDGE")
   for var in "${env_vars[@]}" ; do
-    write_to_terminal "Checking Environmnet Variable ${var}"
+    write_log "Checking Environmnet Variable ${var}"
     if [[ -z ${var} ]] ; then
       write_to_terminal "Environment Variable ${var} not set, exiting..."
       exit 1
     else
-      write_to_terminal "${var} is set, proceeding..."
+      write_log "${var} is set, proceeding..."
     fi
   done
 
-  write_to_terminal "All Environment Variables found, proceeding..."
-  printf "\n"
+  write_log "All Environment Variables found, proceeding..."
+}
+
+function validate_env_var() {
+  write_log "Validating environment variables:"
+
+  [[ $(valid_ip "$CYBR_ADDRESS") -eq 0 ]] && write_log "Valid IP found" || write_to_terminal "Invalid IP provided exiting..."
+  [[ $(valid_username "$CYBR_USERNAME") -eq 0 ]] && write_log "Valid Username found" || write_to_terminal "Invalid Username provided, exiting..."
+  [[ $(valid_pass "$CYBR_PASS") -eq 0 ]] && write_log "Valid password found" || write_to_terminal "Invalid password provided, exiting..."
+  [[ $CYBR_MODE =~ Yes|No|Integrated ]] && write_log "Valide Installation mode found" || write_to_terminal "Invalid Installation mode provided, exiting..."
+  [[ $CYBR_BRIDGE =~ [0-1]] ]] && write_log "Valid AD Bridge mode found" || write_to_terminal "Invalid AD Bridge mode provided, exiting..."
+
+  write_log "Required Environment variables validated, proceeding"
 }
 
 function create_vault_ini() {
@@ -688,10 +699,7 @@ function _start_silent_install() {
   disable_nscd
 
   # Validate environmnet variables
-  write_log "Validating environment variables:"
-  [[ $(valid_ip ${CYBR_ADDRESS}) -eq 0 ]] && write_log "Valid IP found"
-  [[ $(valid_username ${CYBR_USERNAME}) -eq 0 ]] && write_log "Valid Username found"
-  [[ $(valid_pass ${CYBR_PASS}) -eq 0 ]] && write_log "Valid password found"
+  validate_env_var
 
   # Install PSMP
 }
