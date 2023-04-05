@@ -422,7 +422,7 @@ function preinstall_gpgkey() {
     # Import GPG Key
     write_to_terminal "GPG Key present - Importing..."
     #TODO: Catch import error
-    rpm --import "INSTALLFILES"/RPM-GPG-KEY-CyberArk
+    rpm --import ${CYBR_DIR}/RPM-GPG-KEY-CyberArk
     write_to_terminal "GPG Key imported, proceeding..."
   else
     # Error - File not found
