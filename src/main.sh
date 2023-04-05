@@ -256,7 +256,7 @@ function pass_prompt() {
   # Test if passwords match
   if [[ "$passvar1" == "$passvar2" ]]; then
     # Check password validity
-    res=$(valid_password "$passvar1")
+    res=$(valid_pass "$passvar1")
     if [[ $res -eq 0 ]] ; then
       write_to_terminal "Valid password provided, proceeding..."
       export CYBR_PASSWORD=$passvar1
