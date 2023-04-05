@@ -328,10 +328,10 @@ function check_env_var() {
   for var in "${env_vars[@]}" ; do
     write_to_terminal "Checking Environmnet Variable ${var}"
     if [[ -z ${var} ]] ; then
-      write_to_terminal "${var} is set, proceeding..."
-    else
       write_to_terminal "Environment Variable ${var} not set, exiting..."
       exit 1
+    else
+      write_to_terminal "${var} is set, proceeding..."
     fi
   done
 
