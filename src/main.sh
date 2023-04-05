@@ -360,7 +360,7 @@ function create_vault_ini() {
 function create_credfile() {
   local verifycredfile
   # Create credential file with username and password provided above
-  print_info "Creating Credential File for authorization to Vault"
+  write_to_terminal "Creating Credential File for authorization to Vault"
   # Verify CreateCredFile is present, exit if not
   if [[ -f ${CYBR_DIR}/CreateCredFile ]];then
     # Modify permissions and create credential file
@@ -449,7 +449,7 @@ function preinstall_infra() {
   local infrarpm=$(find "$infrafolder" -name '*CARKpsmp-infra*')
   if [[ -f $infrarpm ]]; then
     # Install CARKpsmp-infra
-    print_info "CARKpsmp-infra present - Installing $infrarpm"
+    write_to_terminal "CARKpsmp-infra present - Installing $infrarpm"
     if [ $DRYRUN -eq 0 ] ; then
       write_to_terminal "Starting install - $infrarpm"
       rpm -ih "$infrarpm"
