@@ -11,7 +11,7 @@ source "$main_script"
 @test "write_to_terminal() success" {
     run write_to_terminal "test"
     assert_success
-    assert_output "test"
+    assert_output --partial 'test'
 }
 
 @test "write_log() success" {

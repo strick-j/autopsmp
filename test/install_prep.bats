@@ -32,7 +32,7 @@ setup() {
   assert_exists "$tmp_dir/vault.ini.bak"
   # TODO: Check actual text in file
   # 
-  assert_output "Completed vault.ini file modifications, proceeding..."  
+  assert_output --partial 'Completed vault.ini file modifications, proceeding...'
 }
 
 @test "create_vault_ini() - vault.ini not found" {

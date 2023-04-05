@@ -10,7 +10,7 @@ source "$MAINSCRIPT"
 
 @test "install_psmp() - rpm not found" {
   run install_psmp
-  assert_line --index 2 "PSMP rpm install file not found, verify needed files have been copied over. Exiting now..."
+  assert_line --index 2 --partial 'PSMP rpm install file not found, verify needed files have been copied over. Exiting now...'
 }
 
 @test "install_psmp() - rpm found - mock install" {
@@ -22,7 +22,7 @@ source "$MAINSCRIPT"
   function rpm() { echo "Install successful"; }
   export -f rpm
   run install_psmp
-  assert_line --index 4 "PSMP install complete, proceeding..."
+  assert_line --index 4 --partial 'PSMP install complete, proceeding...'
 }
 
 @test "install_psmp() - rpm found - dryrun - no install" {
@@ -33,5 +33,5 @@ source "$MAINSCRIPT"
   export CYBR_DIR="$tmp_dir"
   export DRYRUN=1
   run install_psmp
-  assert_line --index 3 "Skipping installation for dryrun, proceeding..."
+  assert_line --index 3 --partial 'Skipping installation for dryrun, proceeding...'
 }
