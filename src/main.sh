@@ -480,7 +480,8 @@ function preinstall_infra() {
 
 function install_psmp() {
   write_to_terminal "Verifying PSMP rpm installer is present"
-  local psmprpm=$(find "${CYBR_DIR}" -name '*CARKpsmp*')
+  local psmpfolder=${CYBR_DIR}
+  local psmprpm=$(find "$psmpfolder" -name '*CARKpsmp*')
   if [[ -f $psmprpm ]]; then
     # Install CyberArk RPM
     write_to_terminal "PSMP rpm installer present..."
