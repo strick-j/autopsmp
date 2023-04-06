@@ -380,7 +380,7 @@ function create_psmpparms() {
     cp "${CYBR_DIR}"/psmpparms.sample "$VAR_TMP_D"/psmpparms
     sed -i "s+InstallationFolder.*+InstallationFolder=${CYBR_DIR}+g" "$VAR_TMP_D"/psmpparms
     sed -i "s+AcceptCyberArkEULA=No+AcceptCyberArkEULA=Yes+g" "$VAR_TMP_D"/psmpparms
-    sed -i "s+InstallCyberArkSSHD=Integrated+InstallCyberArkSSHD=${CYBR_DIR}+g" "$VAR_TMP_D"/psmpparms
+    sed -i "s+InstallCyberArkSSHD=Integrated+InstallCyberArkSSHD=${CYBR_MODE}+g" "$VAR_TMP_D"/psmpparms
     if [[ $CYBR_BRIDGE -eq 0 ]] ; then
       sed -i "s+#EnableADBridge=No+EnableADBridge=Yes+g" "$VAR_TMP_D"/psmpparms
     fi
