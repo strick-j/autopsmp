@@ -299,27 +299,6 @@ function mode_prompt() {
   printf "\n"
 }
 
-function dir_prompt() {
-  # Prompt for location containing installation media
-  write_to_terminal "Requesting installation directory information"
-  read -p 'Please enter the full path for the installation media [e.g. /tmp/psmp]: ' directory
-  if [[ -d ${directory} ]]; then
-    # Directory present, subfolders have not been verified
-    write_to_terminal "Directory information confirmed as: $directory"
-    export CYBR_DIR=$directory
-  else
-    # Directory not present, allow user to re-enter path or exit
-    write_to_terminal "Directory not found, would you like to try again?"
-    select yn in "Yes" "No"; do
-      case $yn in
-        Yes ) dir_prompt; break;;
-        No ) write_to_terminal "Unable to find installation folder, exiting..."; exit 1;; 
-      esac
-    done
-  fi
-  prinft "\n"
-}
-
 # Check environment Variables for non-interactive install:
 function check_env_var() {
   write_to_terminal "Silent installation detected, checking Environment Varaibles..."
