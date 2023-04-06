@@ -108,7 +108,6 @@ function disable_nscd() {
       write_to_terminal "nscd.${nscd} is not loaded. Proceeding..."
     fi
   done   
-
 }
 
 function gather_facts() {
@@ -191,7 +190,6 @@ function dir_prompt() {
       esac
     done
   fi
-  printf "\n"
 }
 
 function address_prompt() {
