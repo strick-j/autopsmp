@@ -456,9 +456,7 @@ function preinstall_libssh() {
 
 function preinstall_infra() {
   write_to_terminal "CyberArkSSHD set to integrated mode. CARKpsmp-infra will be installed."
-  local infrafolder=${CYBR_DIR}
-  infrafolder+="/IntegratedMode"
-  local infrarpm=$(find "$infrafolder" -name '*CARKpsmp-infra*')
+  local infrarpm=$(find ${CYBR_DIR} -name '*CARKpsmp-infra*.rpm')
   if [[ -f $infrarpm ]]; then
     # Install CARKpsmp-infra
     write_to_terminal "CARKpsmp-infra present - Installing $infrarpm"
@@ -480,8 +478,7 @@ function preinstall_infra() {
 
 function install_psmp() {
   write_to_terminal "Verifying PSMP rpm installer is present"
-  local psmpfolder=${CYBR_DIR}
-  local psmprpm=$(find "$psmpfolder" -name '*CARKpsmp*')
+  local psmprpm=$(find ${CYBR_DIR} -type f -name '*CARKpsmp*.rpm -not -path "*IntegratedMode"')
   if [[ -f $psmprpm ]]; then
     # Install CyberArk RPM
     write_to_terminal "PSMP rpm installer present..."
