@@ -191,6 +191,7 @@ function dir_prompt() {
       esac
     done
   fi
+  printf "\n"
 }
 
 function address_prompt() {
@@ -341,13 +342,11 @@ function check_env_var() {
 
 function validate_env_var() {
   write_log "Validating environment variables:"
-
   [[ $(valid_ip "$CYBR_ADDRESS") -eq 0 ]] && write_log "Valid IP found" || write_to_terminal "Invalid IP provided exiting..."
   [[ $(valid_username "$CYBR_USERNAME") -eq 0 ]] && write_log "Valid Username found" || write_to_terminal "Invalid Username provided, exiting..."
   [[ $(valid_pass "$CYBR_PASS") -eq 0 ]] && write_log "Valid password found" || write_to_terminal "Invalid password provided, exiting..."
   [[ $CYBR_MODE =~ Yes|No|Integrated ]] && write_log "Valide Installation mode found" || write_to_terminal "Invalid Installation mode provided, exiting..."
   [[ $CYBR_BRIDGE =~ [0-1]] ]] && write_log "Valid AD Bridge mode found" || write_to_terminal "Invalid AD Bridge mode provided, exiting..."
-
   write_log "Required Environment variables validated, proceeding"
 }
 
@@ -437,9 +436,7 @@ function preinstall_libssh() {
   if rpm -qa libssh 2>&1 > /dev/null; then
     write_to_terminal "libssh is already installed, skipping..."
   else
-    local prereqfolder=${CYBR_DIR}
-    prereqfolder+="/Pre-Requisites"
-    local libsshrpm=$(find "$prereqfolder" -name '*libssh*')
+    local libsshrpm=$(find ${CYBR_DIR} -name '*libssh*')
     if [[ -f $libsshrpm ]]; then
       # Install libssh
       write_to_terminal "libssh present - Installing $libsshrpm"
@@ -478,7 +475,7 @@ function preinstall_infra() {
 
 function install_psmp() {
   write_to_terminal "Verifying PSMP rpm installer is present"
-  local psmprpm=$(find ${CYBR_DIR} -type f -name '*CARKpsmp*.rpm' -not -path "*IntegratedMode")
+  local psmprpm=$(find ${CYBR_DIR} -name '*CARKpsmp*.rpm' -not -path "*/IntegratedMode")
   if [[ -f $psmprpm ]]; then
     # Install CyberArk RPM
     write_to_terminal "PSMP rpm installer present..."
