@@ -259,7 +259,7 @@ function pass_prompt() {
     res=$(valid_pass "$passvar1")
     if [[ $res -eq 0 ]] ; then
       write_to_terminal "Valid password provided, proceeding..."
-      export CYBR_PASSWORD=$passvar1
+      export CYBR_PASS=$passvar1
       # Unset password variables
       unset passvar1 
       unset passvar2
@@ -354,9 +354,9 @@ function create_credfile() {
   if [[ -f ${CYBR_DIR}/CreateCredFile ]];then
     # Modify permissions and create credential file
     chmod 755 "${CYBR_DIR}"/CreateCredFile
-    "${CYBR_DIR}"/CreateCredFile "${CYBR_DIR}"/user.cred Password -username "${CYBR_USERNAME}" -password "${CYBR_USERNAME}" -EntropyFile >> autopsmp.log 2>&1
+    "${CYBR_DIR}"/CreateCredFile "${CYBR_DIR}"/user.cred Password -username "${CYBR_USERNAME}" -password "${CYBR_PASS}" -EntropyFile >> autopsmp.log 2>&1
     # Unset password variable
-    #unset CYBERARKPASSWORD 
+    unset CYBR_PASS
     verifycredfile=$(tail -1 autopsmp.log)
     if [[ "$verifycredfile" == "Command ended successfully" ]]; then
       write_to_terminal "Credential file created successfully, proceeding..."
@@ -783,7 +783,7 @@ function _start_interactive_install() {
   # clean_dryrun
 
   # Clean up files created during install (credfile, vault.ini, etc...)
-  clean_installation
+  clean_install
 }
 
 function _show_help {
