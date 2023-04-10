@@ -507,7 +507,7 @@ function verify_psmp_rpms() {
     write_to_terminal "PSMP rpm not installed, review logs for errors. Exiting..."
     exit 1
   fi
-  prinft "\n"
+  printf "\n"
 }
 
 function verify_psmp_services() {
