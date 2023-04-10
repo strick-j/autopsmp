@@ -480,7 +480,7 @@ function verify_psmp_rpms() {
   if [[ $CYBR_BRIDGE -eq 1 ]] ; then 
     write_to_terminal "Verifying libssh rpm is installed"
     local installedlibsshrpm=$(rpm -qa | grep "libssh-")
-    if [[ ${insalledlibsshrpm} ]] ; then
+    if [[ ${installedlibsshrpm} ]] ; then
       write_to_terminal "${installedlibsshrpm} found, proceeding..."
     else 
       write_to_terminal "Required libssh rpm not installed, review logs for errors. Exiting..."
