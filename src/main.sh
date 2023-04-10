@@ -490,8 +490,8 @@ function verify_psmp_rpms() {
 
   if [[ ${CYBR_MODE} == "Integrated" ]]; then
     write_to_terminal "Verifying PSMP Infra rpm is installed"
-    local installedinfrarpm=$(rpm -q CARKpsmp-infra)
-    if [[ ${insalledinfrarpm} ]] ; then
+    local installedinfrarpm=$(rpm -qa | grep "CARKpsmp-infra")
+    if [[ ${installedinfrarpm} ]] ; then
       write_to_terminal "${installedinfrarpm} found, proceeding..."
     else 
       write_to_terminal "PSMP Infra rpm not installed, review logs for errors. Exiting..."
