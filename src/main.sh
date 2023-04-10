@@ -570,7 +570,7 @@ function check_maintenance_user() {
 
 function create_user() {
   write_to_terminal "Creating ${1} user and setting permissions"
-  if [ $(getent group admin) ]; then
+  if [ $(getent group wheel) ]; then
     write_to_terminal "Wheel group found, attempting to create and add user to wheel group"
     adduser -g wheel "$1" >/dev/null 2>&1
   else
