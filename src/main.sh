@@ -526,6 +526,9 @@ function clean_install() {
     write_to_terminal "PSMP installation and cleanup completed."
     exit 0
   fi
+
+  # Move vault.ini.bak to vault.ini
+  mv -f "${CYBR_DIR}"/vault.ini.bak "${CYBR_DIR}"/vault.ini
   printf "\n"
 }
 
