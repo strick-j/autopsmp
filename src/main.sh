@@ -382,8 +382,8 @@ function create_psmpparms() {
     sed -i "s+InstallationFolder.*+InstallationFolder=${CYBR_DIR}+g" "$VAR_TMP_D"/psmpparms
     sed -i "s+AcceptCyberArkEULA=No+AcceptCyberArkEULA=Yes+g" "$VAR_TMP_D"/psmpparms
     sed -i "s+InstallCyberArkSSHD=Integrated+InstallCyberArkSSHD=${CYBR_MODE}+g" "$VAR_TMP_D"/psmpparms
-    if [[ $CYBR_BRIDGE -eq 0 ]] ; then
-      sed -i "s+#EnableADBridge=No+EnableADBridge=Yes+g" "$VAR_TMP_D"/psmpparms
+    if [[ ${CYBR_BRIDGE} -eq 0 ]] ; then
+      sed -i "s+#EnableADBridge=no+EnableADBridge=Yes+g" "$VAR_TMP_D"/psmpparms
     fi
     write_to_terminal "psmpparms file modified and copied to $VAR_TMP_D, proceeding..."
   else
@@ -477,7 +477,7 @@ function install_psmp() {
 
 function verify_psmp_rpms() {
   # Add checks for rpm
-  if [[ $CYBR_BRIDGE -eq 1 ]] ; then 
+  if [[ ${CYBR_BRIDGE} -eq 0 ]] ; then 
     write_to_terminal "Verifying libssh rpm is installed"
     local installedlibsshrpm=$(rpm -qa | grep "libssh-")
     if [[ ${installedlibsshrpm} ]] ; then
@@ -488,7 +488,7 @@ function verify_psmp_rpms() {
     fi
   fi
 
-  if [[ $CYBR_MODE == "Integrated" ]]; then
+  if [[ ${CYBR_MODE} == "Integrated" ]]; then
     write_to_terminal "Verifying PSMP Infra rpm is installed"
     local installedinfrarpm=$(rpm -q CARKpsmp-infra)
     if [[ ${insalledinfrarpm} ]] ; then
@@ -512,7 +512,7 @@ function verify_psmp_rpms() {
 
 function verify_psmp_services() {
   # Add checks for service(s) status
-  if [[ $CYBR_BRIDGE -eq 0 ]] ; then 
+  if [[ ${CYBR_BRIDGE} -eq 0 ]] ; then 
     local services_array=("psmp" "psmpadb")
   else
     local services_array=("psmp")
