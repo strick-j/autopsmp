@@ -774,12 +774,12 @@ function _start_interactive_install() {
   preinstall_gpgkey
 
   # Install AD Bridge based on user input
-  if [ $CYBR_BRIDGE -eq 1 ] ; then
+  if [ ${CYBR_BRIDGE} -eq 0 ] ; then
     preinstall_libssh
   fi
 
   # Check for Integrated Mode - Install infra package
-  if [[ $CYBR_MODE == "Integrated" ]] ; then
+  if [[ ${CYBR_MODE} == "Integrated" ]] ; then
     preinstall_infra
   fi
   
