@@ -412,7 +412,7 @@ function preinstall_gpgkey() {
 
 function preinstall_libssh() {
   write_to_terminal "Verifying Pre-Requisites are present"
-  if [[ $(rpm -qa grep "libssh-") ]]; then
+  if [[ $(rpm -qa | grep "libssh-") ]]; then
     write_to_terminal "libssh is already installed, skipping..."
   else
     local libsshrpm=$(find ${CYBR_DIR} -name '*libssh*')
