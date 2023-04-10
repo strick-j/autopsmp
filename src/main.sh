@@ -154,8 +154,8 @@ function enable_ad_bridge() {
   write_to_terminal "Enable PSMP AD Bridging?"
   select yn in "Yes" "No"; do
     case $yn in
-      Yes ) write_to_terminal "Install will enable AD Bridging capability, proceeding..."; export CYBR_BRIDGE=1; break;;
-      No ) write_to_terminal "Install will not enable AD Bridging capability, proceeding..."; export CYBR_BRIDGE=0; break;;
+      Yes ) write_to_terminal "Install will enable AD Bridging capability, proceeding..."; export CYBR_BRIDGE=0; break;;
+      No ) write_to_terminal "Install will not enable AD Bridging capability, proceeding..."; export CYBR_BRIDGE=1; break;;
     esac
   done
   printf "\n"
@@ -512,7 +512,7 @@ function verify_psmp_rpms() {
 
 function verify_psmp_services() {
   # Add checks for service(s) status
-  if [[ $CYBR_BRIDGE -eq 1 ]] ; then 
+  if [[ $CYBR_BRIDGE -eq 0 ]] ; then 
     local services_array=("psmp" "psmpadb")
   else
     local services_array=("psmp")
