@@ -396,7 +396,7 @@ function create_psmpparms() {
 
 function preinstall_gpgkey() {
   write_to_terminal "Verifying rpm GPG Key is present"
-  if [[ -f ${CYBR_DIR}/RPM-GPG-KEY-CyberArk ]]; then
+  if [[ -f ${CYBR_DIR}/RPM-GPG-KEY-CyberArk ]] ; then
     # Import GPG Key
     write_to_terminal "GPG Key present - Importing..."
     #TODO: Catch import error
@@ -412,7 +412,7 @@ function preinstall_gpgkey() {
 
 function preinstall_libssh() {
   write_to_terminal "Verifying Pre-Requisites are present"
-  if rpm -qa libssh 2>&1 > /dev/null; then
+  if [[ rpm -q libssh 2>&1 > /dev/null ]]; then
     write_to_terminal "libssh is already installed, skipping..."
   else
     local libsshrpm=$(find ${CYBR_DIR} -name '*libssh*')
