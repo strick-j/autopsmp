@@ -359,6 +359,7 @@ function create_credfile() {
     unset CYBR_PASS
     verifycredfile=$(tail -1 autopsmp.log)
     if [[ "$verifycredfile" == "Command ended successfully" ]]; then
+      rm -f autopsmp.log
       write_to_terminal "Credential file created successfully, proceeding..."
     else
       write_to_terminal "Credential file not created sueccessfully. Exiting now..."
@@ -474,9 +475,31 @@ function install_psmp() {
   printf "\n"
 }
 
-function verify_psmp() {
+function verify_psmp_rpms() {
   # Add checks for rpm
-  write_to_terminal "Verifying psmp rpm is installed."
+  if [[ $CYBR_BRIDGE -eq 1 ]] ; then 
+    write_to_terminal "Verifying libssh rpm is installed"
+    local installedlibsshrpm=$(rpm -q libssh)
+    if [[ ${insalledlibsshrpm} ]] ; then
+      write_to_terminal "${installedlibsshrpm} found, proceeding..."
+    else 
+      write_to_terminal "Required libssh rpm not installed, review logs for errors. Exiting..."
+      exit 1
+    fi
+  fi
+
+  if [[ $CYBR_MODE == "Integrated" ]]
+    write_to_terminal "Verifying PSMP Infra rpm is installed"
+    local installedinfrarpm=$(rpm -q CARKpsmp-infra)
+    if [[ ${insalledinfrarpm} ]] ; then
+      write_to_terminal "${installedinfrarpm} found, proceeding..."
+    else 
+      write_to_terminal "PSMP Infra rpm not installed, review logs for errors. Exiting..."
+      exit 1
+    fi
+  fi
+
+  write_to_terminal "Verifying PSMP rpm is installed."
   local installedrpm=$(rpm -q CARKpsmp)
   if [[ ${installedrpm} ]] ; then
     write_to_terminal "${installedrpm} found, proceeding..."
@@ -484,7 +507,10 @@ function verify_psmp() {
     write_to_terminal "PSMP rpm not installed, review logs for errors. Exiting..."
     exit 1
   fi
+  prinft "\n"
+}
 
+function verify_psmp_services() {
   # Add checks for service(s) status
   if [[ $CYBR_BRIDGE -eq 1 ]] ; then 
     local services_array=("psmp" "psmpadb")
@@ -503,7 +529,7 @@ function verify_psmp() {
         write_to_terminal "${service} service is not active, review logs for errors. Proceeding..."
       fi
     else
-      if [[ $(service psmpsrv psmp ${service} | awk '/Active:/ {print $2}') = "active" ]] ; then
+      if [[ $(service psmpsrv status ${service} | grep "running") ]] ; then
         write_to_terminal "${service} service is active, proceeding..."
       else
         write_to_terminal "${service} service is not active, review logs for errors. Proceeding..."
@@ -768,8 +794,11 @@ function _start_interactive_install() {
 
   write_header "Step 6: Installation Verification"
   
+  # Verify RPM Status
+  verify_psmp_rpms
+
   # Check Service Status
-  verify_psmp
+  verify_psmp_services
 
   ### Installation Complete
   ### 
