@@ -45,7 +45,7 @@ source "$MAINSCRIPT"
   testusername=$(head /dev/urandom | LC_ALL=C tr -dc 'A-Za-z0-9"$<>|' | head -c 36)
   invalidchars='|<>'
   usernameconcat="${testusername}${invalidchars}"
-  run valid_username $testusername
+  run valid_username $usernameconcat
   assert_output '4' 
 }
 
