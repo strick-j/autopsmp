@@ -79,7 +79,7 @@ function disable_nscd() {
   # Check status of nscd service and socket
   nscd_array=("service" "socket")
   for nscd in ${nscd_array[@]}
-  do.
+  do
     nscd="$nscd"
     # Check if service is active, stop if so
     if [[ $(systemctl status nscd.$nscd | awk '/Active:/ {print $2}') = "active" ]] ; then
