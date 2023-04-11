@@ -36,7 +36,7 @@ source $MAINSCRIPT
   function rpm() { echo "Install successful"; }
   export -f rpm
   run install_psmp
-  assert_line --index 4 --partial 'PSMP install complete, proceeding...'
+  assert_line --index 4 --partial 'installed, proceeding...'
 }
 
 @test "preinstall_infra() - rpm found - dryrun - no install" {
