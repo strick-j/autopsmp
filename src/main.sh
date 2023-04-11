@@ -670,7 +670,7 @@ function valid_username() {
     stat=2
   elif [[ $leading = *[\.[:space:]]* ]] || [[ $trailing = *[\.[:space:]]* ]] ; then
     stat=3
-  elif [[ $username = *['\'/:*?'"''<''>''|''$''\t\r\n\x1f']* ]] ; then
+  elif [[ $username = *[\\/:*?'"''<''>''|'$'\t\r\n\x1f']* ]] ; then
     stat=4
   else
     stat=0
