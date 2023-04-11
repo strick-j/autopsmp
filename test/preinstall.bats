@@ -25,7 +25,7 @@ source $MAINSCRIPT
   assert_failure
 }
 
-@test "install_psmp() - rpm found - mock install" {
+@test "preinstall_infra() - rpm found - mock install" {
   tmp_dir="$BATS_TEST_DIRNAME/tmp/tmp_dir"
   tmp_infra_dir="$BATS_TEST_DIRNAME/tmp/tmp_dir/IntegratedMode"
   tmp_file="CARKpsmp-infra-12.06.0.26.x86_64.rpm"

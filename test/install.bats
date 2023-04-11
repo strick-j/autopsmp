@@ -12,7 +12,7 @@ source "$MAINSCRIPT"
   tmp_dir="$BATS_TEST_DIRNAME/tmp/tmp_dir"
   export CYBR_DIR="$tmp_dir"
   run install_psmp
-  assert_line --index 1 --partial 'PSMP rpm install file not found, verify needed files have been copied over. Exiting now...'
+  assert_line --index 2 --partial 'PSMP rpm install file not found, verify needed files have been copied over. Exiting now...'
 }
 
 @test "install_psmp() - rpm found - mock install" {
