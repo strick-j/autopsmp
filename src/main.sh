@@ -79,7 +79,7 @@ function disable_nscd() {
   # Check status of nscd service and socket
   nscd_array=("service" "socket")
   for nscd in ${nscd_array[@]}
-  do
+  do.
     nscd="$nscd"
     # Check if service is active, stop if so
     if [[ $(systemctl status nscd.$nscd | awk '/Active:/ {print $2}') = "active" ]] ; then
@@ -384,6 +384,9 @@ function create_psmpparms() {
     sed -i "s+InstallCyberArkSSHD=Integrated+InstallCyberArkSSHD=${CYBR_MODE}+g" "$VAR_TMP_D"/psmpparms
     if [[ ${CYBR_BRIDGE} -eq 0 ]] ; then
       sed -i "s+#EnableADBridge=no+EnableADBridge=Yes+g" "$VAR_TMP_D"/psmpparms
+    fi
+    if [[ ${CYBR_OS} == "sles" ]] || [[ ${CYBR_OS} == "suse" ]] ; then
+      sed -i "s+Hardening=Yes+Hardening=No+g" "$VAR_TMP_D"/psmpparms
     fi
     write_to_terminal "psmpparms file modified and copied to $VAR_TMP_D, proceeding..."
   else
@@ -740,9 +743,6 @@ function _start_interactive_install() {
   # Prompt for directory with installation media
   dir_prompt
 
-  # Prompt to Enable AD Bridging?
-  enable_ad_bridge
-
   # Prompt for Vault IP Address
   address_prompt
 
@@ -754,6 +754,9 @@ function _start_interactive_install() {
 
   # Prompt for Installation Mode
   mode_prompt
+
+  # Prompt to Enable AD Bridging?
+  enable_ad_bridge
 
   ### Information gathering completed
   ###
