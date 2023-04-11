@@ -35,7 +35,7 @@ source $MAINSCRIPT
   export CYBR_DIR="$tmp_dir"
   function rpm() { echo "Install successful"; }
   export -f rpm
-  run install_psmp
+  run preinstall_infra
   assert_line --index 3 --partial 'installed, proceeding...'
 }
 
