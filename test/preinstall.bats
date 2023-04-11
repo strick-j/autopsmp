@@ -36,7 +36,7 @@ source $MAINSCRIPT
   function rpm() { echo "Install successful"; }
   export -f rpm
   run preinstall_infra
-  assert_line --index 3 --partial 'installed, proceeding...'
+  assert_line --index 4 --partial 'installed, proceeding...'
 }
 
 @test "preinstall_infra() - rpm found - dryrun - no install" {
