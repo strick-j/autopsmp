@@ -25,6 +25,20 @@ source $MAINSCRIPT
   assert_failure
 }
 
+@test "install_psmp() - rpm found - mock install" {
+  tmp_dir="$BATS_TEST_DIRNAME/tmp/tmp_dir"
+  tmp_integrated_dir="${tmp_dir}/IntegratedMode"
+  tmp_file="CARKpsmp-infra-12.06.0.26.x86_64.rpm"
+  mkdir $tmp_dir
+  mkdir $tmp_integrated_dir
+  touch $tmp_integrated_dir/$tmp_file
+  export CYBR_DIR="$tmp_dir"
+  function rpm() { echo "Install successful"; }
+  export -f rpm
+  run install_psmp
+  assert_line --index 4 --partial 'PSMP install complete, proceeding...'
+}
+
 @test "preinstall_infra() - rpm found - dryrun - no install" {
   tmp_dir="$BATS_TEST_DIRNAME/tmp/tmp_dir"
   tmp_infra_dir="$BATS_TEST_DIRNAME/tmp/tmp_dir/IntegratedMode"
