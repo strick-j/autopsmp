@@ -385,7 +385,7 @@ function create_psmpparms() {
     if [[ ${CYBR_BRIDGE} -eq 0 ]] ; then
       sed -i "s+#EnableADBridge=no+EnableADBridge=Yes+g" "$VAR_TMP_D"/psmpparms
     fi
-    if [[ ${CYBR_OS} == "sles" ]] || [[ ${CYBR_OS} == "suse" ]] ; then
+    if [[ ${CYBR_OS} =~ ^([sS][uUlL][sSeE][eEsS])$ ]] ; then
       sed -i "s+Hardening=Yes+Hardening=No+g" "$VAR_TMP_D"/psmpparms
     fi
     write_to_terminal "psmpparms file modified and copied to $VAR_TMP_D, proceeding..."
@@ -475,6 +475,14 @@ function install_psmp() {
     write_to_terminal "PSMP rpm install file not found, verify needed files have been copied over. Exiting now..."
     exit 1
   fi
+  printf "\n"
+}
+
+function postinstall_integratedsuse() {
+  write_to_terminal "Running post installation steps for Integrated Mode on SUSE"
+  # Disble nscd module
+  local disable_rcnscd=$(rcnscd stop && chkconfig nscd off)
+  $disable_rcnscd
   printf "\n"
 }
 
@@ -801,7 +809,19 @@ function _start_interactive_install() {
   # Install PSMP
   install_psmp
 
-  write_header "Step 6: Installation Verification"
+  ### Installation Complete
+  ### 
+  ### Begin Post Installation Steps
+
+  write_header "Step 6: Post Installation"
+
+  if [[ ${CYBR_OS} =~ ^([sS][uUlL][sSeE][eEsS])$ ]] ; then
+    if [[ ${CYBR_MODE} == "Integrated" ]] ; then
+      postinstall_integratedsuse
+    fi
+  fi
+
+  write_header "Step 7: Installation Verification"
   
   # Verify RPM Status
   verify_psmp_rpms
@@ -809,16 +829,20 @@ function _start_interactive_install() {
   # Check Service Status
   verify_psmp_services
 
-  ### Installation Complete
+  ### Installation Verification Complete
   ### 
-  ### Begin Installation Cleanup
+  ### Check for maintenance existence and user access
 
-  write_header "Step 7: Maintenance Access Verification"
+  write_header "Step 8: Maintenance Access Verification"
   
   # Check for maintenance user  
   check_maintenance_user
+
+  ### Installation Complete
+  ### 
+  ### Begin Installation Cleanup
   
-  write_header "Step 7: Installation Cleanup"
+  write_header "Step 9: Installation Cleanup"
   
   # Remove files
   # clean_dryrun
