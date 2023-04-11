@@ -596,13 +596,19 @@ function check_maintenance_user() {
 
 function create_user() {
   write_to_terminal "Creating ${1} user and setting permissions"
-  if [ $(getent group wheel) ]; then
-    write_to_terminal "Wheel group found, attempting to create and add user to wheel group"
-    adduser -g wheel "$1" >/dev/null 2>&1
-  else
-    write_to_terminal "Wheel group not found, creating user. Manually add to appropriate groups prior to rebooting..."
-    adduser "$1" >/dev/null 2>&1
-  fi
+  adduser "$1" >/dev/null 2>&1
+
+  local usergroup_array=("wheel" "admin" "PSMConnectUsers")
+
+  for usergroup in ${usergroup_array[@]}
+  do
+    usergroup="$usergroup"
+    write_to_terminal "Checking for group - ${usergroup}"
+    if [ $(getent group ${usergroup}) ] ; then
+      write_to_terminal "${usergroup} found. Adding ${1} to ${usergroup}"
+      usermod -aG ${usergroup} "$1" >/dev/null 2>&1
+    fi
+  done
   
   write_to_terminal "Verifying user ${1} was created"
   if id "$1" >/dev/null 2>&1 ; then
