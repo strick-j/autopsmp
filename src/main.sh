@@ -9,7 +9,7 @@ AUTOPSMP_VERSION="0.0.2-alpha"
 VAR_TMP_D="/var/tmp"
 VAR_INSTALL_LOG_F=$VAR_TMP_D/autopsmp_install.log
 SHOULD_SHOW_LOGS=1
-CYBR_DEBUG=0
+CYBR_DEBUG=1
 DEBUG=0
 
 # Generic Variables
@@ -19,14 +19,18 @@ DRYRUN=0
 
 # Generic output functions (logging, terminal, etc..)
 function write_log() {
-  if [ $SHOULD_SHOW_LOGS -eq 1 ] ; then
-    echo "$(date) | $1" >> $VAR_INSTALL_LOG_F
+  if [ ${SHOULD_SHOW_LOGS} -eq 1 ] ; then
+    echo "$(date) | INFO  | $1" >> $VAR_INSTALL_LOG_F
     [ ${CYBR_DEBUG} -eq 1 ] && printf 'DEBUG: %s\n' "$1"
   fi
 }
 
+function write_error() {
+  echo "$(date) | ERROR | $1" >> $VAR_INSTALL_LOG_F
+  printf 'ERROR: %s\n' "$1"
+}
 function write_to_terminal() {
-  echo "$(date) | $1" >> $VAR_INSTALL_LOG_F
+  echo "$(date) | INFO  | $1" >> $VAR_INSTALL_LOG_F
   printf 'INFO: %s\n' "$1"
 }
 
@@ -124,8 +128,8 @@ function gather_facts() {
   if [[ -f /etc/os-release ]] ; then
     local os
     local osversion
-    os=$(awk '{ FS = "="} /^ID=/ {print $2}' /etc/os-release | sed 's/\"//g' )
-    osversion=$(awk '{ FS = "="} /^VERSION_ID=/ {print $2}' /etc/os-release | sed 's/\"//g' )
+    os=$(awk '{ FS = "="} /^ID=/ {print $2}' /etc/os-release | sed -e 's/^"//' -e 's/"$//' )
+    osversion=$(awk '{ FS = "="} /^VERSION_ID=/ {print $2}' /etc/os-release | sed -e 's/^"//' -e 's/"$//' )
     export CYBR_OS="$os"
     export CYBR_OSVERSION="$osversion"
     write_to_terminal "Detected OS: ${CYBR_OS}"
@@ -300,32 +304,35 @@ function mode_prompt() {
 }
 
 # Check environment Variables for non-interactive install:
-function check_env_var() {
-  write_to_terminal "Silent installation detected, checking Environment Varaibles..."
-  
-  #TODO: add haredening
-  env_vars=("CYBR_USERNAME" "CYBR_PASSWORD" "CYBR_ADDRESS" "CYBR_DIR" "CYBR_MODE" "CYBR_BRIDGE")
+function read_installation_var() {
+  write_to_terminal "Silent installation detected, checking installation variables..."
+
+  env_vars=("CYBR_DIR" "CYBR_ADDRESS" "CYBR_USERNAME" "CYBR_PASS" "CYBR_MODE" "CYBR_BRIDGE")
   for var in "${env_vars[@]}" ; do
-    write_log "Checking Environmnet Variable ${var}"
-    if [[ -z ${!var+x} ]] ; then
-      write_to_terminal "Environment Variable ${var} not set, exiting..."
-      exit 1
+    write_log "Reading Variable ${var}"
+    installvar=$(awk -F "=" '/'${var}'=/{print $2} ' installconfig.ini | sed -e 's/^"//' -e 's/"$//')
+    if [[ $installvar ]] ; then
+      write_log "Variable ${var} found, proceeding..."
+      write_to_terminal "${installvar}"
+      export ${var}="${installvar}"
     else
-      write_log "${var} is set, proceeding..."
+      write_to_terminal "${var} is not set, exiting..."
+      exit 1
     fi
   done
 
-  write_log "All Environment Variables found, proceeding..."
+  write_to_terminal "All Environment Variables found, proceeding..."
 }
 
-function validate_env_var() {
-  write_log "Validating environment variables:"
-  [[ $(valid_ip "$CYBR_ADDRESS") -eq 0 ]] && write_log "Valid IP found" || write_to_terminal "Invalid IP provided exiting..."
-  [[ $(valid_username "$CYBR_USERNAME") -eq 0 ]] && write_log "Valid Username found" || write_to_terminal "Invalid Username provided, exiting..."
-  [[ $(valid_pass "$CYBR_PASS") -eq 0 ]] && write_log "Valid password found" || write_to_terminal "Invalid password provided, exiting..."
-  [[ $CYBR_MODE =~ Yes|No|Integrated ]] && write_log "Valide Installation mode found" || write_to_terminal "Invalid Installation mode provided, exiting..."
-  [[ $CYBR_BRIDGE =~ [0-1]] ]] && write_log "Valid AD Bridge mode found" || write_to_terminal "Invalid AD Bridge mode provided, exiting..."
-  write_log "Required Environment variables validated, proceeding"
+function validate_installation_var() {
+  # Use validators to check installation variables read from installconfig.ini
+  write_to_terminal "Validating installation variables:"
+  [[ $(valid_ip "${CYBR_ADDRESS}") -eq 0 ]] && (write_log "Valid IP found") || (write_error "Invalid IP provided exiting..."; exit 1)
+  [[ $(valid_username "${CYBR_USERNAME}") -eq 0 ]] && (write_log "Valid Username found") || (write_error "Invalid Username provided, exiting..."; exit 1)
+  [[ $(valid_pass "${CYBR_PASS}") -eq 0 ]] && (write_log "Valid password found") || (write_error "Invalid password provided, exiting..."; exit 1)
+  [[ $CYBR_MODE =~ (^[Yy][Ee][Ss]$)|(^[Nn][Oo]$)|(^Integrated$) ]] && (write_log "Valide Installation mode found") || (write_error "Invalid Installation mode provided, exiting..."; exit 1)
+  [[ $CYBR_BRIDGE =~ [0-1] ]] && (write_log "Valid AD Bridge mode found") || (write_error "Invalid AD Bridge mode provided, exiting..."; exit 1)
+  write_to_terminal "Required installation variables validated, proceeding"
 }
 
 function create_vault_ini() {
@@ -711,16 +718,61 @@ function _start_silent_install() {
   # Check Operating System
   gather_facts
 
-  # Check for required environment variables
-  check_env_var
-
   # Disable NSCD - CyberArk recommends disabling to prevent unexpected behavior
   disable_nscd
 
-  # Validate environmnet variables
-  validate_env_var
+  # Check for required environment variables
+  read_installation_var
+
+  # Validate installation variables
+  validate_installation_var
+
+  # Create vault.ini
+  create_vault_ini
+
+  # Create psmpparms
+  create_psmpparms
+
+  # Create credential file
+  create_credfile
+
+  # Import GPGKEY
+  preinstall_gpgkey
+
+  # Install AD Bridge based on user input
+  if [ ${CYBR_BRIDGE} -eq 0 ] ; then
+    preinstall_libssh
+  fi
+
+  # Check for Integrated Mode - Install infra package
+  if [[ ${CYBR_MODE} == "Integrated" ]] ; then
+    preinstall_infra
+  fi
 
   # Install PSMP
+  install_psmp
+
+  # Check if OS is SUSE, if so check for integrated mode and run post install steps
+  if [[ ${CYBR_OS} =~ ^([sS][uUlL][sSeE][eEsS])$ ]] ; then
+    if [[ ${CYBR_MODE} == "Integrated" ]] ; then
+      postinstall_integratedsuse
+    fi
+  fi
+
+  # Verify RPM Status
+  verify_psmp_rpms
+
+  # Check Service Status
+  verify_psmp_services
+ 
+  # Check for maintenance user  
+  check_maintenance_user
+ 
+  # Clean up files created during install (credfile, vault.ini, etc...)
+  clean_install
+
+  # Clean exit
+  exit 0
 }
 
 function _start_interactive_install() {
@@ -844,15 +896,15 @@ function _start_interactive_install() {
   
   write_header "Step 9: Installation Cleanup"
   
-  # Remove files
-  # clean_dryrun
-
   # Clean up files created during install (credfile, vault.ini, etc...)
   clean_install
+
+  # Clean exit
+  exit 0
 }
 
 function _show_help {
-  echo "Help Placeholder"  
+  printf "%s" "$(<help.txt)"  
   exit 0
 }
 
