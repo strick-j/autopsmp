@@ -1,0 +1,39 @@
+NAME
+    autopsmp - A utility to install the CyberArk Privileged Session Manager SSH Proxy
+
+SYNOPSIS
+    ./main.sh [options]
+    ./main.sh --silent
+    ./main.sh --dryrun
+    ./main.sh --debug
+    ./main.sh --help
+    ./main.sh --version
+
+DESCRIPTION
+    The script follows the approved CyberArk installation procedures documented in the
+    CyberArk public documentation. 
+
+    When this is run without any options an interactive prompt process is presented to the 
+    end user. Key items that require input include:
+    1. Accept EULA (Yes, No)
+    2. Directory of Installation package
+    3. CyberArk Vault IP
+    4. CyberArk Username with rights to install PSMP
+    5. PSMP Installation Mode (Integrated, Yes, No)
+    6. Install AD Bridge (Yes, No)
+
+    Prior to running the script download and unzip the PSMP installation media and place
+    the folder on the target system (e.g., /home/<user directory>/psmp)
+
+    If running in silent mode, update the installconfig.ini file prior to running the script
+    with the silent flag.
+
+EXAMPLES
+    Interactive Install: 
+        ./main.sh
+    Silent Install: 
+        ./main.sh --silent (requires installconfig.ini to be updated)
+    Show Help:
+        ./main.sh --help
+    Show Version:
+        ./main.sh --version
