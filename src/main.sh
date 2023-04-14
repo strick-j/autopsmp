@@ -9,7 +9,7 @@ AUTOPSMP_VERSION="0.0.2-alpha"
 VAR_TMP_D="/var/tmp"
 VAR_INSTALL_LOG_F=$VAR_TMP_D/autopsmp_install.log
 SHOULD_SHOW_LOGS=1
-CYBR_DEBUG=1
+CYBR_DEBUG=0
 DEBUG=0
 
 # Generic Variables
@@ -664,7 +664,7 @@ function check_maintenance_user() {
 
 function create_user() {
   write_to_terminal "Creating ${1} user and setting permissions"
-  adduser "$1" >/dev/null 2>&1
+  useradd "$1" >/dev/null 2>&1
 
   local usergroup_array=("wheel" "admin" "PSMConnectUsers")
 
