@@ -490,6 +490,32 @@ function postinstall_integratedsuse() {
   # Disble nscd module
   local disable_rcnscd=$(rcnscd stop && chkconfig nscd off)
   $disable_rcnscd
+
+  # Fix Symbolic Link
+  if [[ -f /etc/pki/tls/certs ]] ; then
+    write_log "/etc/pki/tls/certs exists already"
+    # Check for symbolic link
+  else
+    write_to_terminal "Creating /etc/pki/tls/certs"
+    mkdir -p /etc/pki/tls/certs
+    if [[ -f /etc/pki/tls/certs ]] ; then
+      write_to_terminal "Directory created"
+    else 
+      write_error "Failed to create /etc/pki/tls/certs, manually create directory and symbolic link"
+    fi
+    # Create symbolic link
+    if [[ -f /etc/ssl/ca-bundle.pem ]] ; then 
+      ln -s /etc/ssl/ca-bundle.pem /etc/pki/tls/certs/ca-bundle.crt
+      # TODO: Verify Symbolic link created
+    fi
+
+    # Restart PSMP Servive
+    if [[ $CYBR_OS = "rhel" ]] && [[ $CYBR_OSVERSION = 8* ]]; then 
+      systemctl restart psmpsrv
+    else
+      service psmpsrv restart
+    fi
+    
   printf "\n"
 }
 
