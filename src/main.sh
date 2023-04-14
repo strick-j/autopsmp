@@ -508,14 +508,13 @@ function postinstall_integratedsuse() {
       ln -s /etc/ssl/ca-bundle.pem /etc/pki/tls/certs/ca-bundle.crt
       # TODO: Verify Symbolic link created
     fi
-
     # Restart PSMP Servive
     if [[ $CYBR_OS = "rhel" ]] && [[ $CYBR_OSVERSION = 8* ]]; then 
       systemctl restart psmpsrv
     else
       service psmpsrv restart
     fi
-    
+  fi
   printf "\n"
 }
 
