@@ -1,0 +1,18 @@
+name: CI
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install dependencies
+        run: npm install -g bats
+
+      - uses: actions/checkout@v3
+        with:
+          path: bats
+
+      - name: Test
+        run: bats test/install_prep.bats
+
