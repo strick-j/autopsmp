@@ -15,7 +15,7 @@ Automated CyberArk Privileged Session Manager SSH Proxy Installer.
 # User Prompts
 Prior to installation have the following information on hand:
 1. Accept Eula
-2. Folder path that the above required files were copied to. (e.g., /root/PSMP/ or /home/<username>/PSMP)
+2. Folder path that the above required files were copied to. (e.g., /root/PSMP/ or /home/PSMP)
 3. Vault IP Address
 4. Vault Username - Note user requires permissions to perform several activities in the vault, more details can be found in the PAS Installation Guide.
 5. Vault User Password

@@ -491,29 +491,54 @@ function postinstall_integratedsuse() {
   local disable_rcnscd=$(rcnscd stop && chkconfig nscd off)
   $disable_rcnscd
 
-  # Fix Symbolic Link
-  if [[ -f /etc/pki/tls/certs ]] ; then
-    write_log "/etc/pki/tls/certs exists already"
+  # Fix Symbolic Link issues
+  write_to_terminal "Fixing symbolic link issues for public cert chain"
+  if [[ -d /etc/pki/tls/certs ]] ; then
+    write_log "/etc/pki/tls/certs directory exists already"
     # Check for symbolic link
-  else
-    write_to_terminal "Creating /etc/pki/tls/certs"
-    mkdir -p /etc/pki/tls/certs
-    if [[ -f /etc/pki/tls/certs ]] ; then
-      write_to_terminal "Directory created"
+    if [[ -f /etc/pki/tls/certs/ca-bundle.crt ]] ; then
+      write_log "Symbolic link /etc/pki/tls/certs/ca-bundle.crt already exists"
     else 
-      write_error "Failed to create /etc/pki/tls/certs, manually create directory and symbolic link"
-    fi
-    # Create symbolic link
-    if [[ -f /etc/ssl/ca-bundle.pem ]] ; then 
       ln -s /etc/ssl/ca-bundle.pem /etc/pki/tls/certs/ca-bundle.crt
-      # TODO: Verify Symbolic link created
+      if [[ -f /etc/pki/tls/certs/ca-bundle.crt ]] ; then
+        write_log "Symbolic link /etc/pki/tls/certs/ca-bundle.crt created successfully"
+      else
+        write_error "Failed to create /etc/pki/tls/certs/ca-bundle.crt symbolic link, manually create symbolic link"
+      fi
     fi
+  else
+    # Directory doesnt exist
+    write_log "Creating /etc/pki/tls/certs"
+    mkdir -p /etc/pki/tls/certs
+    if [[ -d /etc/pki/tls/certs ]] ; then 
+      write_log "/etc/pki/tls/certs directory created"
+      # Create symbolic link
+      if [[ -f /etc/ssl/ca-bundle.pem ]] ; then 
+        ln -s /etc/ssl/ca-bundle.pem /etc/pki/tls/certs/ca-bundle.crt
+        if [[ -f /etc/pki/tls/certs/ca-bundle.crt ]] ; then
+          write_log "Symbolic link /etc/pki/tls/certs/ca-bundle.crt created successfully"
+        else 
+          write_error "Failed to create /etc/pki/tls/certs/ca-bundle.crt symbolic link, manually create symbolic link"
+        fi
+      else
+        write_error "Failed to find appropriate ca-bundle.pem to create symbolic link"
+      fi
     # Restart PSMP Servive
     if [[ $CYBR_OS = "rhel" ]] && [[ $CYBR_OSVERSION = 8* ]]; then 
       systemctl restart psmpsrv
     else
       service psmpsrv restart
     fi
+    else 
+      write_error "Failed to create /etc/pki/tls/certs, manually create directory and symbolic link"
+    fi
+  fi
+
+  # Restart PSMP Servive
+  if [[ $CYBR_OS = "rhel" ]] && [[ $CYBR_OSVERSION = 8* ]]; then 
+    systemctl restart psmpsrv
+  else
+    service psmpsrv restart
   fi
   printf "\n"
 }
